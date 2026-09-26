@@ -94,11 +94,12 @@
   let ticking = false;
   const update = () => {
     ticking = false;
+    // reads first, then writes: toggling classes before reading scrollHeight forces a layout
     const y = window.scrollY;
     const vh = window.innerHeight;
+    const max = Math.max(1, document.documentElement.scrollHeight - vh);
     const past = y > vh * 0.35;
     hdr.classList.toggle('is-solid', y > 40);
-    const max = Math.max(1, document.documentElement.scrollHeight - vh);
     toTopBar.style.strokeDashoffset = String(1 - Math.min(1, y / max));
     toTop.classList.toggle('is-visible', y > vh);
     if (root.classList.contains('menu-open')) return;
@@ -119,8 +120,11 @@
     const spy = new IntersectionObserver((entries) => {
       entries.forEach((en) => {
         if (!en.isIntersecting) return;
-        spyLinks.forEach((a) => a.removeAttribute('aria-current'));
         const a = byId.get(en.target.id);
+        // sections without a nav link (hero, integrity, marquee, topics, faq) keep the last
+        // link lit if they sit after it; the hero clears everything
+        if (!a && en.target.id !== 'top') return;
+        spyLinks.forEach((l) => l.removeAttribute('aria-current'));
         if (a) a.setAttribute('aria-current', 'true');
       });
     }, { rootMargin: '-45% 0px -50% 0px' });
@@ -330,8 +334,7 @@
      ------------------------------------------------------------------------ */
   if (!motionOK) {
     root.classList.add('is-loaded');
-    const hint = $('[data-hint]');
-    if (hint) hint.textContent = 'Swipe or scroll sideways';
+    $('[data-hint]').textContent = 'Swipe or scroll sideways';
     return;
   }
   // In motion mode the topics track is driven by the page scroll, so its viewport isn't a scroll region
@@ -357,6 +360,21 @@
   const mm = gsap.matchMedia();
   const DESKTOP = '(min-width: 761px)';
   const HAND = { svgOrigin: '50 50' }; // clock hands rotate around the dial centre
+  // Pinned sections need room: below this height (landscape phones) they fall back to normal flow
+  const TALL = '(min-height: 521px)';
+  const SHORT = '(max-height: 520px)';
+  const hint = $('[data-hint]');
+  mm.add(SHORT, () => {
+    root.classList.add('no-pin');
+    const was = hint.textContent;
+    hint.textContent = 'Swipe or scroll sideways';
+    trackVp.setAttribute('tabindex', '0'); trackVp.setAttribute('role', 'region'); trackVp.setAttribute('aria-label', 'Conversation topics (scroll sideways)');
+    return () => {
+      root.classList.remove('no-pin');
+      hint.textContent = was;
+      trackVp.removeAttribute('tabindex'); trackVp.removeAttribute('role'); trackVp.removeAttribute('aria-label');
+    };
+  });
 
   // Split [data-split] headings into masked words: span.w > span.wi
   const split = (el) => {
@@ -565,18 +583,19 @@
     .fromTo(chars, { yPercent: 70, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 1.1, ease: EASE, stagger: 0.05 })
     .fromTo('[data-int-ipa]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, ease: EASE, stagger: 0.12 }, '-=0.7');
 
-  const intTl = gsap.timeline({
-    defaults: { ease: 'none' },
-    scrollTrigger: {
-      trigger: integrity, start: 'top top', end: () => '+=' + window.innerHeight * 2,
-      pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
-    },
+  mm.add(TALL, () => {
+    gsap.timeline({
+      defaults: { ease: 'none' },
+      scrollTrigger: {
+        trigger: integrity, start: 'top top', end: () => '+=' + window.innerHeight * 2,
+        pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
+      },
+    })
+      .fromTo('[data-int-bg]', { scale: 1.15 }, { scale: 1, duration: 3 }, 0)
+      .fromTo('[data-def]', { opacity: 0.15, x: 24 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.8, ease: 'power2.out' }, 0.2)
+      .fromTo('[data-int-note]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 2.3)
+      .to({}, { duration: 0.3 }); // hold
   });
-  intTl
-    .fromTo('[data-int-bg]', { scale: 1.15 }, { scale: 1, duration: 3 }, 0)
-    .fromTo('[data-def]', { opacity: 0.15, x: 24 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.8, ease: 'power2.out' }, 0.2)
-    .fromTo('[data-int-note]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 2.3)
-    .to({}, { duration: 0.3 }); // hold
 
   /* ------------------------------------------------------------------------
      04b · MARQUEE — continuous loop; scroll velocity boosts speed, direction flips it, adds skew
@@ -585,6 +604,7 @@
   if (mRow) {
     const loop = gsap.to(mRow, { xPercent: -50, duration: 36, ease: 'none', repeat: -1 });
     const skew = gsap.quickTo(mRow, 'skewX', { duration: 0.5, ease: 'power3.out' });
+    const settle = gsap.delayedCall(0.15, () => skew(0)).pause();
     const clocks = $$('.clock', mRow);
     const spin = gsap.to(clocks, { rotation: 360, duration: 8, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
     ScrollTrigger.create({
@@ -598,7 +618,7 @@
           onComplete: () => gsap.to([loop, spin], { timeScale: self.direction, duration: 1.2, ease: 'power2.out' }),
         });
         skew(gsap.utils.clamp(-8, 8, v / -300));
-        gsap.delayedCall(0.15, () => skew(0));
+        settle.restart(true);
       },
     });
     fadeUp($('.marquee'), 'top 95%');
@@ -612,22 +632,24 @@
   const vp = $('.topics__viewport');
   const dist = () => Math.max(0, track.scrollWidth - vp.clientWidth);
   reveal($('.topics__head'));
-  const hTween = gsap.fromTo(track, { x: 0 }, {
-    x: () => -dist(), ease: 'none',
-    scrollTrigger: {
-      trigger: topics, start: 'top top', end: () => '+=' + dist() * 1.15,
-      pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
-      onUpdate: (self) => gsap.set('[data-track-bar]', { scaleX: 0.02 + self.progress * 0.98 }),
-    },
-  });
-  $$('.tcard', track).forEach((card) => {
-    gsap.fromTo($('[data-hand]', card), { rotation: -90, ...HAND }, {
-      rotation: 270, ...HAND, ease: 'none',
-      scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left right', end: 'right left', scrub: true },
+  mm.add(TALL, () => {
+    const hTween = gsap.fromTo(track, { x: 0 }, {
+      x: () => -dist(), ease: 'none',
+      scrollTrigger: {
+        trigger: topics, start: 'top top', end: () => '+=' + dist() * 1.15,
+        pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
+        onUpdate: (self) => gsap.set('[data-track-bar]', { scaleX: 0.02 + self.progress * 0.98 }),
+      },
     });
-    gsap.fromTo([$('.tcard__label', card), $('.tcard__meta', card)], { x: 60, opacity: 0 }, {
-      x: 0, opacity: 1, ease: 'power2.out', stagger: 0.15,
-      scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left 95%', end: 'left 55%', scrub: true },
+    $$('.tcard', track).forEach((card) => {
+      gsap.fromTo($('[data-hand]', card), { rotation: -90, ...HAND }, {
+        rotation: 270, ...HAND, ease: 'none',
+        scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left right', end: 'right left', scrub: true },
+      });
+      gsap.fromTo([$('.tcard__label', card), $('.tcard__meta', card)], { x: 60, opacity: 0 }, {
+        x: 0, opacity: 1, ease: 'power2.out', stagger: 0.15,
+        scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left 95%', end: 'left 55%', scrub: true },
+      });
     });
   });
 

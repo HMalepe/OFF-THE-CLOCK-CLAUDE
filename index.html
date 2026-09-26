@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en-ZA" class="static">
 <head>
   <meta charset="utf-8">
@@ -53,9 +53,9 @@
     })(document.documentElement);
   </script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+  <!-- Fonts are self-hosted (css/styles.css §0). Preload the two the hero paints first. -->
+  <link rel="preload" href="fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -96,7 +96,7 @@
      ============================================================ -->
 <header class="hdr" data-hdr>
   <a class="hdr__brand" href="#top" aria-label="Off The Clock — home">
-    <img src="assets/logo-white.png" alt="Off The Clock" width="480" height="187">
+    <img src="assets/logo-white-240.png" srcset="assets/logo-white-240.png 1x, assets/logo-white.png 2x" alt="Off The Clock" width="240" height="93">
   </a>
   <nav class="hdr__nav" aria-label="Primary" data-spy>
     <a href="#show">The show</a>
@@ -121,7 +121,7 @@
 <div class="drawer-scrim" data-menu-close></div>
 <aside class="drawer" id="drawer" aria-label="Main menu" inert>
   <button class="drawer__close" type="button" data-menu-close><span class="sr">Close menu</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
-  <img class="drawer__logo" src="assets/logo-navy.png" alt="" width="480" height="187">
+  <img class="drawer__logo" src="assets/logo-navy-240.png" srcset="assets/logo-navy-240.png 1x, assets/logo-navy.png 2x" alt="" width="240" height="93">
   <nav class="drawer__nav" aria-label="Menu">
     <a href="#show"><span>01</span>The show</a>
     <a href="#topics"><span>02</span>Conversations</a>
@@ -188,10 +188,9 @@
     <figure class="hero__media" data-hero-media>
       <div class="hero__frame" data-hero-frame>
         <div class="ph" data-hero-img>
-          <picture><source srcset="assets/studio.webp" type="image/webp"><img src="assets/studio.jpg" alt="Peter Mehlape and a guest at the Off The Clock studio table, two podcast microphones between them and the word 'integrity' on the wall behind" width="780" height="824" fetchpriority="high" decoding="async"></picture>
+          <picture><source srcset="assets/studio-480.webp 480w, assets/studio.webp 780w" sizes="(max-width: 900px) calc(100vw - 36px), 580px" type="image/webp"><img src="assets/studio.jpg" srcset="assets/studio-480.jpg 480w, assets/studio.jpg 780w" sizes="(max-width: 900px) calc(100vw - 36px), 580px" alt="Peter Mehlape and another speaker at the Off The Clock studio table, two podcast microphones between them and the word 'integrity' on the wall behind" width="780" height="824" fetchpriority="high" decoding="async"></picture>
         </div>
       </div>
-      <figcaption class="hero__cap" data-hero-fade><span class="rule rule--sm"></span>Behind the mic</figcaption>
       <!-- rotating badge around the clock mark -->
       <div class="badge" data-badge aria-hidden="true">
         <svg class="badge__text" viewBox="0 0 200 200">
@@ -200,6 +199,7 @@
         </svg>
         <svg class="clock badge__clock"><use href="#clock"/></svg>
       </div>
+      <figcaption class="hero__cap" data-hero-fade><span class="rule rule--sm"></span>Behind the mic</figcaption>
     </figure>
   </div>
 
@@ -519,7 +519,7 @@
      ============================================================ -->
 <footer class="ftr" id="footer">
   <div class="wrap ftr__top">
-    <img class="ftr__logo" src="assets/logo-white.png" alt="Off The Clock" width="480" height="187" loading="lazy">
+    <img class="ftr__logo" src="assets/logo-white-240.png" srcset="assets/logo-white-240.png 240w, assets/logo-white.png 480w" sizes="(max-width: 760px) 170px, 230px" alt="Off The Clock" width="240" height="93" loading="lazy">
     <p class="ftr__script">Lead well. Live well.</p>
     <ul class="ftr__social" data-stagger>
       <li><a href="#newsletter" data-link="spotify" aria-label="Spotify"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M7.2 9.4c3.3-1 6.9-.7 9.8.9M7.8 12.4c2.7-.8 5.6-.5 8 .8M8.4 15.2c2.1-.6 4.2-.4 6.1.6"/></svg></a></li>

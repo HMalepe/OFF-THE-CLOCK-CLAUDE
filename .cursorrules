@@ -12,6 +12,7 @@ Static podcast site. **No build step, no framework.** Keep it that way unless th
 ## Brand rules
 - **Colours only via tokens** (`var(--navy)`, `--sky`, `--gold`, `--paper`, `--blue`, …). No new hex values outside `:root`. Existing `rgba()` values are navy/sky/paper at alpha for overlays, glows and shadows.
 - Fonts: `--f-display` (Source Serif 4: headings, italic accents), `--f-body` (Inter), `--f-brand` (Montserrat 900: logo-style caps only — loader, marquee, footer wordmark, card numbers).
+- Fonts are **self-hosted** in `fonts/` (subset woff2, see `fonts/README.md`). Never add a Google Fonts `<link>` back: it was the biggest render-blocker. A new weight or glyph means re-subsetting.
 - Don't use `-webkit-text-stroke` on Montserrat: the variable font's overlapping contours show through. Use solid fills.
 - The clock mark is `<symbol id="clock">`. Reuse it with `<use href="#clock">`; recolour via `--clock-ring` / `--clock-face`. When a hand must animate, inline the full SVG and mark the path (`data-hand`, `data-loader-hand`, `data-footer-hand`).
 - Logos are real PNGs (`assets/logo-white.png`, `assets/logo-navy.png`). Don't redraw the logo in type for the header or footer.
@@ -20,7 +21,7 @@ Static podcast site. **No build step, no framework.** Keep it that way unless th
 1. **Create ScrollTriggers in DOM order.** Pinned sections add spacing that shifts every later trigger.
 2. **Never hide content with CSS start states.** Set start states with `gsap.set` or `fromTo` so content stays visible when JS or GSAP fails.
 3. **Use `fromTo`, not `from`.**
-4. Pinned sequences need `scrub: 1`, `invalidateOnRefresh: true` and function-based values.
+4. Pinned sequences need `scrub: 1`, `invalidateOnRefresh: true` and function-based values, and must be created inside `mm.add(TALL, …)` so short viewports get the flow layout.
 5. Reuse the primitives (`wordRise`, `fadeUp`, `staggerUp`, `reveal`, `leave`, `drift`, `speed`, `batchReveal`, `tilt`) before writing new tweens. Use `[data-split]` for masked headings, `[data-fade]` for fade-ups, `[data-stagger]` for child cascades.
 6. Default ease is `expo.out`. Scroll-linked tweens use `ease: 'none'`.
 7. Clock hands rotate with `svgOrigin: '50 50'` passed in **both** the from and to vars (`...HAND`), or they orbit the wrong point.
@@ -33,7 +34,7 @@ Static podcast site. **No build step, no framework.** Keep it that way unless th
 `<html class="static">` ships in the markup so the page is complete with JavaScript off. The head script removes it unless `prefers-reduced-motion: reduce` is set; `main.js` adds it back if GSAP is missing. Never remove the class from the markup. No loader, no pins, no Lenis, everything visible, the conversations track is a native swipe row. Every new feature must work and be readable in static mode.
 
 ## Testing (before calling anything done)
-- Widths: **390×844**, **1280×800** and **1440×900**.
+- Widths: **390×844**, **1280×800** and **1440×900**, plus one landscape phone (**844×390**) where the pins must switch off (`html.no-pin`).
 - `document.documentElement.scrollWidth - innerWidth === 0` (no horizontal scroll).
 - No console errors (blocked Google Fonts in sandboxes are fine).
 - Both pinned sections (integrity, conversations) show all content by their end, with nothing clipped.

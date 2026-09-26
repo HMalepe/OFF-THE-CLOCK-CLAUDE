@@ -17,6 +17,7 @@ Source of truth for every animation. If the site is ported (Next.js, Astro, Webf
 | Anchors | `lenis.scrollTo(target, { duration: 1.4, offset: section ? 0 : -96 })`. `[data-topic]` links also pre-select the enquiry topic |
 | Clock hands | `rotation` with `svgOrigin: '50 50'` (`HAND`) in both from and to vars |
 | Desktop-only motion | `gsap.matchMedia()` with `(min-width: 761px)` for `[data-speed]`; tilt only on `(hover:hover) and (pointer:fine)` |
+| Short viewports | Both pins live in `mm.add('(min-height: 521px)')`. At ≤520px tall (landscape phones) `html.no-pin` is set instead: integrity and conversations use the static flow layout (native swipe row), while every other animation keeps running. Rotating a phone reverts/rebuilds the pins; verified identical to a fresh load |
 
 ## Reusable primitives
 
@@ -68,7 +69,7 @@ CSS failsafe: `.js .loader` hides itself at 5s.
 ### 01 Header (plain scroll listener, all modes)
 - Transparent over the hero; `.is-solid` (navy 92% + blur, 88 → 72px) after 40px of scroll.
 - `.is-hidden` (translateY −100%) when scrolling down past 35% of the viewport; returns on any scroll up.
-- Scroll handler is rAF-throttled. An IntersectionObserver (`rootMargin -45% 0 -50% 0`) sets `aria-current` on the matching nav link, which draws its sky underline.
+- Scroll handler is rAF-throttled and reads layout (`scrollY`, `scrollHeight`) before writing classes, so it never forces a reflow. An IntersectionObserver (`rootMargin -45% 0 -50% 0`) sets `aria-current` on the matching nav link, which draws its sky underline.
 - Drawer slides in from the right (0.7s). Lenis stops while open (static mode: `overflow:hidden`). Tab is trapped inside; Escape closes and returns focus to the burger. Logo, links, title and platform links `enter()` (y 28, stagger 0.045, delay 0.15, 0.9s).
 
 ### Back to top (plain scroll listener, all modes)
@@ -101,6 +102,7 @@ Pinned timeline: `start: top top`, `end: += 2 × innerHeight`, `pin`, `scrub: 1`
 
 ### 04b Marquee
 - Two identical sets; `xPercent −50`, 36s linear loop. The clock marks spin (8s/turn).
+- One reusable `delayedCall` (`settle.restart()`) returns the skew to 0; no new call per scroll frame.
 - On scroll: both loops' timeScale → `direction × clamp(1, 6, 1 + |v|/350)`, easing back to `±1` over 1.2s. Skew `clamp(−8°, 8°, −v/300)` settling to 0. Paused off screen.
 - Section `fadeUp` at `top 95%`. Static: one wrapped set, no motion.
 

@@ -35,7 +35,8 @@ Open the URL it prints. Don't double-click `index.html`, because some browsers r
 
 ```
 index.html            one <section> per block, numbered comments (00 loader … 11 footer)
-css/styles.css        :root tokens → base → primitives → sections in page order → .static
+css/styles.css        @font-face → :root tokens → base → primitives → sections in page order → .static
+fonts/                self-hosted, subset woff2 (Source Serif 4, Inter, Montserrat) + licence notes
 js/main.js            SITE CONFIG → basics → static-mode return → motion in DOM order
 js/vendor/            gsap.min.js, ScrollTrigger.min.js, lenis.min.js
 assets/               logos, photos, book cover, favicon, og.jpg
@@ -114,6 +115,7 @@ The source photo is 1280×960, so the studio and portrait crops are ~780px and ~
 - Works with JavaScript disabled: `<html class="static">` ships in the markup and is only lifted by JS.
 - Skip link, focus moves to the section you jump to, Tab is trapped in the open menu, and the header nav marks the current section (`aria-current`).
 - The loader plays once per browser session; repeat visits go straight to the hero.
+- Landscape phones (≤520px tall) skip the two pinned scroll sequences and get the normal flow layout, so nothing is clipped.
 - `prefers-reduced-motion: reduce` → `html.static`: no loader, no pins, no smooth scroll. All content is visible and the conversations gallery becomes a native swipe row.
 - If GSAP fails to load, the same static mode kicks in. Content is never hidden by CSS; start states are only set by JS.
 - The loader has a CSS safety timeout and hides itself after 5s even if JS stalls.
@@ -123,6 +125,8 @@ The source photo is 1280×960, so the studio and portrait crops are ~780px and ~
 - The enquiry form has a honeypot field for basic bot protection.
 
 ## Deploy
+
+`vercel.json` (Vercel) and `_headers` (Netlify / Cloudflare Pages) set long cache lifetimes for fonts, vendor JS and assets, plus basic security headers.
 
 **Vercel:** `npx vercel` in this folder (framework: *Other*, no build command, output dir `.`), or import the GitHub repo.
 **Netlify:** drag the folder onto app.netlify.com/drop, or `npx netlify deploy --prod --dir .`.
