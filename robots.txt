@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Add once the site is on its domain:
+# Sitemap: https://yourdomain/sitemap.xml

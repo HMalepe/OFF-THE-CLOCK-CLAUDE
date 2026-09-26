@@ -26,7 +26,10 @@
     email: '',     // e.g. 'hello@yourdomain.co.za' (enables mailto links + enquiry fallback)
   };
   const SIGNUP_ENDPOINT = '';  // newsletter provider form URL (Mailchimp, Buttondown, ConvertKit…)
-  const ENQUIRY_ENDPOINT = ''; // form backend (Formspree, Netlify Forms, your own /api/enquiry…)
+  const ENQUIRY_ENDPOINT = ''; // form backend (Formspree, your own /api/enquiry…)
+  // Hosting on Netlify? Set this to 'netlify' and both forms work with no endpoint at all:
+  // submissions appear under Site → Forms in the Netlify dashboard (the forms already carry data-netlify).
+  const FORMS_PROVIDER = '';
 
   const root = document.documentElement;
   const $ = (s, c = document) => c.querySelector(s);
@@ -191,7 +194,28 @@
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-  // Newsletter — set SIGNUP_ENDPOINT above (see PROMPTS.md #3)
+  // Send a form to its endpoint, or to Netlify Forms. Resolves true/false, or null when nothing is configured.
+  const send = async (formEl, endpoint) => {
+    let req = null;
+    if (endpoint) req = [endpoint, { method: 'POST', body: new FormData(formEl), headers: { Accept: 'application/json' } }];
+    else if (FORMS_PROVIDER === 'netlify') {
+      req = ['/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(formEl)).toString() }];
+    }
+    if (!req) return null;
+    const btn = $('[type="submit"]', formEl);
+    if (btn.disabled) return false;
+    btn.disabled = true;
+    try {
+      const res = await fetch(...req);
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  // Newsletter — set SIGNUP_ENDPOINT or FORMS_PROVIDER above (see PROMPTS.md #2)
   const form = $('[data-signup]');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -199,22 +223,13 @@
     const email = form.email.value.trim();
     const say = (t) => { msg.textContent = t; enter(msg, { y: 8, duration: 0.6 }); };
     if (!EMAIL_RE.test(email)) { say('Please enter a valid email address.'); form.email.focus(); return; }
-    if (!SIGNUP_ENDPOINT) { say('Almost there — sign-ups open very soon.'); return; }
-    const btn = $('[type="submit"]', form);
-    if (btn.disabled) return;
-    btn.disabled = true;
-    try {
-      const res = await fetch(SIGNUP_ENDPOINT, { method: 'POST', body: new FormData(form) });
-      say(res.ok ? "You're in. Check your inbox to confirm." : 'Something went wrong — please try again.');
-      if (res.ok) form.reset();
-    } catch {
-      say('Something went wrong — please try again.');
-    } finally {
-      btn.disabled = false;
-    }
+    const ok = await send(form, SIGNUP_ENDPOINT);
+    if (ok === null) { say('Almost there — sign-ups open very soon.'); return; }
+    say(ok ? "You're in. Thanks for subscribing." : 'Something went wrong — please try again.');
+    if (ok) form.reset();
   });
 
-  // Enquiry form — ENQUIRY_ENDPOINT first, then a pre-filled email to LINKS.email
+  // Enquiry form — ENQUIRY_ENDPOINT / FORMS_PROVIDER first, then a pre-filled email to LINKS.email
   const enq = $('[data-enquiry]');
   enq.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -225,19 +240,10 @@
     if (!f.name.value.trim()) { say('Please add your name.'); f.name.focus(); return; }
     if (!EMAIL_RE.test(f.email.value.trim())) { say('Please enter a valid email address.'); f.email.focus(); return; }
     if (!f.message.value.trim()) { say('Please add a short message.'); f.message.focus(); return; }
-    if (ENQUIRY_ENDPOINT) {
-      const btn = $('[type="submit"]', enq);
-      if (btn.disabled) return;
-      btn.disabled = true;
-      try {
-        const res = await fetch(ENQUIRY_ENDPOINT, { method: 'POST', body: new FormData(enq), headers: { Accept: 'application/json' } });
-        say(res.ok ? "Thank you — we'll be in touch soon." : 'Something went wrong — please try again.');
-        if (res.ok) enq.reset();
-      } catch {
-        say('Something went wrong — please try again.');
-      } finally {
-        btn.disabled = false;
-      }
+    const ok = await send(enq, ENQUIRY_ENDPOINT);
+    if (ok !== null) {
+      say(ok ? "Thank you — we'll be in touch soon." : 'Something went wrong — please try again.');
+      if (ok) enq.reset();
       return;
     }
     if (LINKS.email) {
@@ -360,6 +366,17 @@
   const mm = gsap.matchMedia();
   const DESKTOP = '(min-width: 761px)';
   const HAND = { svgOrigin: '50 50' }; // clock hands rotate around the dial centre
+  // Section setup runs as a queue of small tasks (~30ms each) after the hero is built, so the
+  // first paint and the intro aren't held up by one long main-thread task. Order = DOM order.
+  const steps = [];
+  const step = (fn) => steps.push(fn);
+  const runSteps = () => {
+    requestAnimationFrame(() => setTimeout(function next() {
+      const t0 = performance.now();
+      while (steps.length && performance.now() - t0 < 30) steps.shift()();
+      if (steps.length) setTimeout(next, 0);
+    }, 0));
+  };
   // Pinned sections need room: below this height (landscape phones) they fall back to normal flow
   const TALL = '(min-height: 521px)';
   const SHORT = '(max-height: 520px)';
@@ -511,7 +528,7 @@
   lenis && lenis.stop();
   const loader = $('.loader');
   const heroWords = split($('[data-split="hero"]'));
-  const heroFades = $$('[data-hero-fade]');
+  const heroFades = $$('[data-hero-fade]'); // .hero__sub has no data-hero-fade on purpose: it's the mobile LCP element, so it stays painted
   const heroFrame = $('[data-hero-frame]');
   const badge = $('[data-badge]');
 
@@ -528,18 +545,22 @@
     intro.addLabel('reveal', 0);
   } else {
     intro
-      .fromTo('.loader__clock', { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: EASE })
-      .fromTo('[data-loader-hand]', { rotation: 0, ...HAND }, { rotation: 360, ...HAND, duration: 0.95, ease: 'power3.inOut' }, '-=0.4')
-      .fromTo('.loader__word span', { yPercent: 110 }, { yPercent: 0, duration: 0.8, ease: EASE, stagger: 0.07 }, '-=0.55')
-      .fromTo('.loader__rule', { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: 'expo.inOut' }, '-=0.55')
-      .fromTo('.loader__tag', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, '-=0.45')
-      .to('.loader__inner', { opacity: 0, y: -20, duration: 0.4, ease: 'power2.in' }, '+=0.2')
-      .to(loader, { yPercent: -100, duration: 1, ease: 'expo.inOut', onComplete: () => { loader.style.display = 'none'; } }, '-=0.1')
-      .addLabel('reveal', '-=0.65');
+      .fromTo('.loader__clock', { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: EASE })
+      .fromTo('[data-loader-hand]', { rotation: 0, ...HAND }, { rotation: 360, ...HAND, duration: 0.75, ease: 'power3.inOut' }, '-=0.3')
+      .fromTo('.loader__word span', { yPercent: 110 }, { yPercent: 0, duration: 0.6, ease: EASE, stagger: 0.05 }, '-=0.5')
+      .fromTo('.loader__rule', { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: 'expo.inOut' }, '-=0.45')
+      .fromTo('.loader__tag', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, '-=0.35')
+      .to('.loader__inner', { opacity: 0, y: -20, duration: 0.3, ease: 'power2.in' }, '+=0.1')
+      .to(loader, { yPercent: -100, duration: 0.9, ease: 'expo.inOut', onComplete: () => { loader.style.display = 'none'; } }, '-=0.05')
+      .addLabel('reveal', '-=0.6');
+  }
+  // Side-by-side layouts wipe the photo in. On stacked layouts (≤900px) it sits below the fold, where a
+  // wipe is barely seen but holds back Largest Contentful Paint, so it only un-zooms there.
+  if (matchMedia('(min-width: 901px)').matches) {
+    intro.fromTo(heroFrame, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.5, ease: 'expo.inOut', clearProps: 'clipPath' }, 'reveal');
   }
   intro
     .call(unlock, null, 'reveal+=0.3') // scrolling is allowed as soon as the hero is showing, not when every tween ends
-    .fromTo(heroFrame, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.5, ease: 'expo.inOut', clearProps: 'clipPath' }, 'reveal')
     .fromTo('[data-hero-img]', { scale: 1.3 }, { scale: 1, duration: 2.1, ease: EASE }, 'reveal')
     .fromTo(hdr, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 1, ease: EASE, clearProps: 'transform' }, 'reveal+=0.2')
     .fromTo(heroWords, { yPercent: 118 }, { yPercent: 0, duration: 1.2, ease: EASE, stagger: 0.08 }, 'reveal+=0.3')
@@ -571,84 +592,92 @@
   /* ------------------------------------------------------------------------
      03 · THE SHOW
      ------------------------------------------------------------------------ */
-  reveal($('.show'));
-  $$('.show [data-speed]').forEach(speed);
+  step(() => {
+    reveal($('.show'));
+    $$('.show [data-speed]').forEach(speed);
+  });
 
   /* ------------------------------------------------------------------------
      04 · INTEGRITY — word reveals on arrival; pinned timeline lights the definitions
      ------------------------------------------------------------------------ */
-  const integrity = $('.integrity');
-  const chars = splitChars($('[data-int-title]'));
-  gsap.timeline({ scrollTrigger: { trigger: integrity, start: 'top 65%', once: true } })
-    .fromTo(chars, { yPercent: 70, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 1.1, ease: EASE, stagger: 0.05 })
-    .fromTo('[data-int-ipa]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, ease: EASE, stagger: 0.12 }, '-=0.7');
+  step(() => {
+    const integrity = $('.integrity');
+    const chars = splitChars($('[data-int-title]'));
+    gsap.timeline({ scrollTrigger: { trigger: integrity, start: 'top 65%', once: true } })
+      .fromTo(chars, { yPercent: 70, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 1.1, ease: EASE, stagger: 0.05 })
+      .fromTo('[data-int-ipa]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, ease: EASE, stagger: 0.12 }, '-=0.7');
 
-  mm.add(TALL, () => {
-    gsap.timeline({
-      defaults: { ease: 'none' },
-      scrollTrigger: {
-        trigger: integrity, start: 'top top', end: () => '+=' + window.innerHeight * 2,
-        pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
-      },
-    })
-      .fromTo('[data-int-bg]', { scale: 1.15 }, { scale: 1, duration: 3 }, 0)
-      .fromTo('[data-def]', { opacity: 0.15, x: 24 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.8, ease: 'power2.out' }, 0.2)
-      .fromTo('[data-int-note]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 2.3)
-      .to({}, { duration: 0.3 }); // hold
+    mm.add(TALL, () => {
+      gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: integrity, start: 'top top', end: () => '+=' + window.innerHeight * 2,
+          pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
+        },
+      })
+        .fromTo('[data-int-bg]', { scale: 1.15 }, { scale: 1, duration: 3 }, 0)
+        .fromTo('[data-def]', { opacity: 0.15, x: 24 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.8, ease: 'power2.out' }, 0.2)
+        .fromTo('[data-int-note]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 2.3)
+        .to({}, { duration: 0.3 }); // hold
+    });
   });
 
   /* ------------------------------------------------------------------------
      04b · MARQUEE — continuous loop; scroll velocity boosts speed, direction flips it, adds skew
      ------------------------------------------------------------------------ */
-  const mRow = $('[data-marquee]');
-  if (mRow) {
-    const loop = gsap.to(mRow, { xPercent: -50, duration: 36, ease: 'none', repeat: -1 });
-    const skew = gsap.quickTo(mRow, 'skewX', { duration: 0.5, ease: 'power3.out' });
-    const settle = gsap.delayedCall(0.15, () => skew(0)).pause();
-    const clocks = $$('.clock', mRow);
-    const spin = gsap.to(clocks, { rotation: 360, duration: 8, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
-    ScrollTrigger.create({
-      trigger: '.marquee', start: 'top bottom', end: 'bottom top',
-      onToggle: (self) => { loop.paused(!self.isActive); spin.paused(!self.isActive); },
-      onUpdate: (self) => {
-        const v = self.getVelocity();
-        const boost = gsap.utils.clamp(1, 6, 1 + Math.abs(v) / 350);
-        gsap.to([loop, spin], {
-          timeScale: self.direction * boost, duration: 0.25, overwrite: true,
-          onComplete: () => gsap.to([loop, spin], { timeScale: self.direction, duration: 1.2, ease: 'power2.out' }),
-        });
-        skew(gsap.utils.clamp(-8, 8, v / -300));
-        settle.restart(true);
-      },
-    });
-    fadeUp($('.marquee'), 'top 95%');
-  }
+  step(() => {
+    const mRow = $('[data-marquee]');
+    if (mRow) {
+      const loop = gsap.to(mRow, { xPercent: -50, duration: 36, ease: 'none', repeat: -1 });
+      const skew = gsap.quickTo(mRow, 'skewX', { duration: 0.5, ease: 'power3.out' });
+      const settle = gsap.delayedCall(0.15, () => skew(0)).pause();
+      const clocks = $$('.clock', mRow);
+      const spin = gsap.to(clocks, { rotation: 360, duration: 8, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
+      ScrollTrigger.create({
+        trigger: '.marquee', start: 'top bottom', end: 'bottom top',
+        onToggle: (self) => { loop.paused(!self.isActive); spin.paused(!self.isActive); },
+        onUpdate: (self) => {
+          const v = self.getVelocity();
+          const boost = gsap.utils.clamp(1, 6, 1 + Math.abs(v) / 350);
+          gsap.to([loop, spin], {
+            timeScale: self.direction * boost, duration: 0.25, overwrite: true,
+            onComplete: () => gsap.to([loop, spin], { timeScale: self.direction, duration: 1.2, ease: 'power2.out' }),
+          });
+          skew(gsap.utils.clamp(-8, 8, v / -300));
+          settle.restart(true);
+        },
+      });
+      fadeUp($('.marquee'), 'top 95%');
+    }
+  });
 
   /* ------------------------------------------------------------------------
      05 · TOPICS — pinned horizontal track; each clock hand turns as its card crosses
      ------------------------------------------------------------------------ */
-  const topics = $('.topics');
-  const track = $('[data-track]');
-  const vp = $('.topics__viewport');
-  const dist = () => Math.max(0, track.scrollWidth - vp.clientWidth);
-  reveal($('.topics__head'));
-  mm.add(TALL, () => {
-    const hTween = gsap.fromTo(track, { x: 0 }, {
-      x: () => -dist(), ease: 'none',
-      scrollTrigger: {
-        trigger: topics, start: 'top top', end: () => '+=' + dist() * 1.15,
-        pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
-        onUpdate: (self) => gsap.set('[data-track-bar]', { scaleX: 0.02 + self.progress * 0.98 }),
-      },
-    });
-    $$('.tcard', track).forEach((card) => {
-      gsap.fromTo($('[data-hand]', card), { rotation: -90, ...HAND }, {
-        rotation: 270, ...HAND, ease: 'none',
-        scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left right', end: 'right left', scrub: true },
+  step(() => {
+    const topics = $('.topics');
+    const track = $('[data-track]');
+    const vp = $('.topics__viewport');
+    const dist = () => Math.max(0, track.scrollWidth - vp.clientWidth);
+    reveal($('.topics__head'));
+    mm.add(TALL, () => {
+      const hTween = gsap.fromTo(track, { x: 0 }, {
+        x: () => -dist(), ease: 'none',
+        scrollTrigger: {
+          trigger: topics, start: 'top top', end: () => '+=' + dist() * 1.15,
+          pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true,
+          onUpdate: (self) => gsap.set('[data-track-bar]', { scaleX: 0.02 + self.progress * 0.98 }),
+        },
       });
-      gsap.fromTo([$('.tcard__label', card), $('.tcard__meta', card)], { x: 60, opacity: 0 }, {
-        x: 0, opacity: 1, ease: 'power2.out', stagger: 0.15,
-        scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left 95%', end: 'left 55%', scrub: true },
+      $$('.tcard', track).forEach((card) => {
+        gsap.fromTo($('[data-hand]', card), { rotation: -90, ...HAND }, {
+          rotation: 270, ...HAND, ease: 'none',
+          scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left right', end: 'right left', scrub: true },
+        });
+        gsap.fromTo([$('.tcard__label', card), $('.tcard__meta', card)], { x: 60, opacity: 0 }, {
+          x: 0, opacity: 1, ease: 'power2.out', stagger: 0.15,
+          scrollTrigger: { trigger: card, containerAnimation: hTween, start: 'left 95%', end: 'left 55%', scrub: true },
+        });
       });
     });
   });
@@ -656,80 +685,107 @@
   /* ------------------------------------------------------------------------
      06 · EPISODES
      ------------------------------------------------------------------------ */
-  const episodes = $('.episodes');
-  reveal($('.sec-head', episodes));
-  batchReveal($('.epgrid'), 2.5); // small drift: the promo card must stay uncropped
-  $$('[data-tilt]').forEach((el) => tilt(el, { amp: 2 }));
-  leave($('.sec-head', episodes));
-  fadeUp($('.checkin'));
-  $$('.checkin [data-speed]').forEach(speed);
+  step(() => {
+    const episodes = $('.episodes');
+    reveal($('.sec-head', episodes));
+    batchReveal($('.epgrid'), 2.5); // small drift: the promo card must stay uncropped
+    $$('[data-tilt]').forEach((el) => tilt(el, { amp: 2 }));
+    leave($('.sec-head', episodes));
+    fadeUp($('.checkin'));
+    $$('.checkin [data-speed]').forEach(speed);
+  });
 
   /* ------------------------------------------------------------------------
      07 · HOST — portrait wipes up + un-zooms, image drifts, clock turns with scroll
      ------------------------------------------------------------------------ */
-  const host = $('.host');
-  const hostFrame = $('.host__frame');
-  const hostPh = $('.ph', hostFrame);
-  gsap.set(hostPh, { scale: 1.25 });
-  gsap.timeline({ scrollTrigger: { trigger: hostFrame, start: 'top 80%', once: true } })
-    .fromTo(hostFrame, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'expo.inOut', clearProps: 'clipPath' })
-    .to(hostPh, { scale: 1, duration: 2, ease: EASE }, '<');
-  drift(hostPh);
-  gsap.fromTo('.host__clock', { rotation: -120 }, {
-    rotation: 120, ease: 'none', transformOrigin: '50% 50%',
-    scrollTrigger: { trigger: host, start: 'top bottom', end: 'bottom top', scrub: 1 },
+  step(() => {
+    const host = $('.host');
+    const hostFrame = $('.host__frame');
+    const hostPh = $('.ph', hostFrame);
+    gsap.set(hostPh, { scale: 1.25 });
+    gsap.timeline({ scrollTrigger: { trigger: hostFrame, start: 'top 80%', once: true } })
+      .fromTo(hostFrame, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'expo.inOut', clearProps: 'clipPath' })
+      .to(hostPh, { scale: 1, duration: 2, ease: EASE }, '<');
+    drift(hostPh);
+    gsap.fromTo('.host__clock', { rotation: -120 }, {
+      rotation: 120, ease: 'none', transformOrigin: '50% 50%',
+      scrollTrigger: { trigger: host, start: 'top bottom', end: 'bottom top', scrub: 1 },
+    });
+    reveal($('.host__copy'));
   });
-  reveal($('.host__copy'));
 
   /* ------------------------------------------------------------------------
      08 · BOOK — cover turns toward you as it scrolls in; pointer tilt; the eight moves fill in
      ------------------------------------------------------------------------ */
-  const book = $('.book');
-  gsap.fromTo('[data-book-scroll]', { rotationY: -28, y: 60 }, {
-    rotationY: 10, y: -40, ease: 'none',
-    scrollTrigger: { trigger: book, start: 'top bottom', end: 'bottom top', scrub: 1 },
-  });
-  tilt($('[data-book]'), { base: { x: 4, y: -18 }, amp: 5 });
-  reveal($('.book__copy'));
-  gsap.fromTo('[data-moves] i', { scale: 0.2, opacity: 0 }, {
-    scale: 1, opacity: 1, duration: 0.9, ease: 'back.out(2)', stagger: 0.09,
-    scrollTrigger: { trigger: '[data-moves]', start: 'top 88%', once: true },
+  step(() => {
+    const book = $('.book');
+    gsap.fromTo('[data-book-scroll]', { rotationY: -28, y: 60 }, {
+      rotationY: 10, y: -40, ease: 'none',
+      scrollTrigger: { trigger: book, start: 'top bottom', end: 'bottom top', scrub: 1 },
+    });
+    tilt($('[data-book]'), { base: { x: 4, y: -18 }, amp: 5 });
+    reveal($('.book__copy'));
+    gsap.fromTo('[data-moves] i', { scale: 0.2, opacity: 0 }, {
+      scale: 1, opacity: 1, duration: 0.9, ease: 'back.out(2)', stagger: 0.09,
+      scrollTrigger: { trigger: '[data-moves]', start: 'top 88%', once: true },
+    });
   });
 
   /* ------------------------------------------------------------------------
      09 · FAQ
      ------------------------------------------------------------------------ */
-  reveal($('.faq'));
-  $$('.faq [data-speed]').forEach(speed);
+  step(() => {
+    reveal($('.faq'));
+    $$('.faq [data-speed]').forEach(speed);
+  });
 
   /* ------------------------------------------------------------------------
      10 · CONTACT
      ------------------------------------------------------------------------ */
-  const contact = $('.contact');
-  gsap.fromTo('.contact__clock', { rotation: -180, scale: 0.4, opacity: 0 }, {
-    rotation: 0, scale: 1, opacity: 1, duration: 1.4, ease: EASE, transformOrigin: '50% 50%',
-    scrollTrigger: { trigger: contact, start: 'top 75%', once: true },
+  step(() => {
+    const contact = $('.contact');
+    gsap.fromTo('.contact__clock', { rotation: -180, scale: 0.4, opacity: 0 }, {
+      rotation: 0, scale: 1, opacity: 1, duration: 1.4, ease: EASE, transformOrigin: '50% 50%',
+      scrollTrigger: { trigger: contact, start: 'top 75%', once: true },
+    });
+    reveal(contact);
   });
-  reveal(contact);
 
   /* ------------------------------------------------------------------------
      11 · FOOTER — content reveals + giant wordmark rises; its clock hand sweeps
      ------------------------------------------------------------------------ */
-  fadeUp($('.ftr__top'), 'top 92%');
-  reveal($('.ftr'));
-  gsap.fromTo('[data-footer-mark]', { yPercent: 100 }, {
-    yPercent: 0, ease: 'none',
-    scrollTrigger: { trigger: '.ftr', start: 'top bottom', end: 'bottom bottom', scrub: 1 },
-  });
-  gsap.fromTo('[data-footer-hand]', { rotation: -270, ...HAND }, {
-    rotation: 0, ...HAND, ease: 'none',
-    scrollTrigger: { trigger: '.ftr', start: 'top bottom', end: 'bottom bottom', scrub: 1 },
+  step(() => {
+    fadeUp($('.ftr__top'), 'top 92%');
+    reveal($('.ftr'));
+    gsap.fromTo('[data-footer-mark]', { yPercent: 100 }, {
+      yPercent: 0, ease: 'none',
+      scrollTrigger: { trigger: '.ftr', start: 'top bottom', end: 'bottom bottom', scrub: 1 },
+    });
+    gsap.fromTo('[data-footer-hand]', { rotation: -270, ...HAND }, {
+      rotation: 0, ...HAND, ease: 'none',
+      scrollTrigger: { trigger: '.ftr', start: 'top bottom', end: 'bottom bottom', scrub: 1 },
+    });
   });
 
   /* ------------------------------------------------------------------------
      4 · FINALISE
      ------------------------------------------------------------------------ */
-  ScrollTrigger.sort();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ScrollTrigger.refresh());
-  window.addEventListener('load', () => ScrollTrigger.refresh());
+  // Deep links (/#book): pins and late-loading fonts both move the target after the browser's own
+  // jump, so land on it again after each of those, until the visitor scrolls on their own.
+  let userMoved = false;
+  ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach((ev) => addEventListener(ev, () => { userMoved = true; }, { once: true, passive: true }));
+  const landHash = () => {
+    const target = location.hash && document.querySelector(location.hash);
+    if (!target || userMoved || !lenis) return;
+    lenis.resize(); // Lenis caches the page height; pins just made it taller, so re-measure before clamping
+    lenis.scrollTo(target, { immediate: true, force: true, offset: target.tagName === 'SECTION' ? 0 : -96 });
+  };
+  const settleLayout = () => { ScrollTrigger.refresh(); landHash(); };
+  step(() => {
+    ScrollTrigger.sort();
+    settleLayout();
+  });
+  runSteps();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => !steps.length && settleLayout());
+  window.addEventListener('load', () => !steps.length && settleLayout());
 })();

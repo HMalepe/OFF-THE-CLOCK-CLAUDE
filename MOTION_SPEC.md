@@ -12,7 +12,8 @@ Source of truth for every animation. If the site is ported (Next.js, Astro, Webf
 | Smooth scroll | `new Lenis({ lerp: 0.1, smoothWheel: true })`, driven by `gsap.ticker`, `lagSmoothing(0)`, `lenis.on('scroll', ScrollTrigger.update)` |
 | ScrollTrigger config | `ignoreMobileResize: true` |
 | Default ease | `expo.out` (CSS mirror: `--ease-out: cubic-bezier(.16,1,.3,1)`) |
-| Creation order | DOM order, then `ScrollTrigger.sort()`; `refresh()` after `document.fonts.ready` and `load` |
+| Creation order | Loader + hero are built immediately. Sections 03–11 are queued with `step()` and run in DOM order as ~30ms chunks after the first frame (keeps Total Blocking Time low), then `ScrollTrigger.sort()` + `refresh()`. `refresh()` again after `document.fonts.ready` and `load` |
+| Deep links | After every refresh, if the URL has a `#hash` and the visitor hasn't scrolled yet: `lenis.resize()` (its cached height is stale once pins are added) then `lenis.scrollTo(target, { immediate })` |
 | Static mode | `<html class="static">` in the markup (safe with no JS). The head script removes it unless reduced motion is on; `main.js` re-adds it if GSAP/ScrollTrigger are missing. No loader, pins, Lenis or scroll tweens |
 | Anchors | `lenis.scrollTo(target, { duration: 1.4, offset: section ? 0 : -96 })`. `[data-topic]` links also pre-select the enquiry topic |
 | Clock hands | `rotation` with `svgOrigin: '50 50'` (`HAND`) in both from and to vars |
@@ -42,25 +43,25 @@ Source of truth for every animation. If the site is ported (Next.js, Astro, Webf
 
 ### 00 Loader → 02 Hero intro (timeline)
 Lenis is stopped during the intro and the scroll is reset to the top when there is no hash.
-The full loader plays **once per session** (`sessionStorage['otc-intro']`). Repeat visits hide the loader and start at the `reveal` label (measured: scroll unlocked 73ms after DOMContentLoaded). First visit: scroll unlocks ≈2.8s after DOMContentLoaded.
+The full loader plays **once per session** (`sessionStorage['otc-intro']`). Repeat visits hide the loader and start at the `reveal` label (measured: scroll unlocked 73ms after DOMContentLoaded). First visit: scroll unlocks ≈2.2s after DOMContentLoaded.
 
 | Position | Target | Tween |
 |---|---|---|
-| 0.15 | `.loader__clock` | scale 0.6, opacity 0 → 1, 1 · 0.7 expo.out |
-| −0.4 | `[data-loader-hand]` | rotation 0 → 360 (svgOrigin 50 50) · 0.95 power3.inOut |
-| −0.55 | `.loader__word span` | yPercent 110 → 0 · 0.8, stagger 0.07 |
-| −0.55 | `.loader__rule` | scaleX 0 → 1 · 0.7 expo.inOut |
-| −0.45 | `.loader__tag` | opacity 0, y 10 → 1, 0 · 0.5 |
-| +0.2 hold | `.loader__inner` | opacity → 0, y −20 · 0.4 power2.in |
-| −0.1 | `.loader` curtain | yPercent 0 → −100 · 1.0 expo.inOut, then `display:none` |
-| label `reveal` = curtain end − 0.65 | | |
+| 0.15 | `.loader__clock` | scale 0.6, opacity 0 → 1, 1 · 0.5 expo.out |
+| −0.3 | `[data-loader-hand]` | rotation 0 → 360 (svgOrigin 50 50) · 0.75 power3.inOut |
+| −0.5 | `.loader__word span` | yPercent 110 → 0 · 0.6, stagger 0.05 |
+| −0.45 | `.loader__rule` | scaleX 0 → 1 · 0.5 expo.inOut |
+| −0.35 | `.loader__tag` | opacity 0, y 10 → 1, 0 · 0.4 |
+| +0.1 hold | `.loader__inner` | opacity → 0, y −20 · 0.3 power2.in |
+| −0.05 | `.loader` curtain | yPercent 0 → −100 · 0.9 expo.inOut, then `display:none` |
+| label `reveal` = curtain end − 0.6 | | |
 | reveal +0.3 | none | `lenis.start()` (scroll unlocks here, not at the end) |
-| reveal | `[data-hero-frame]` | clipPath inset(100% 0 0 0) → inset(0) · 1.5 expo.inOut |
+| reveal | `[data-hero-frame]` | clipPath inset(100% 0 0 0) → inset(0) · 1.5 expo.inOut — **only at ≥901px wide** (stacked phone layouts just un-zoom; the wipe was delaying LCP) |
 | reveal | `[data-hero-img]` | scale 1.3 → 1 · 2.1 expo.out |
 | reveal +0.2 | header | opacity 0, y −20 → 1, 0 · 1.0 |
 | reveal +0.3 | hero words | yPercent 118 → 0 · 1.2, stagger 0.08 |
 | reveal +0.6 | `[data-hero-rule]` | scaleX 0 → 1 · 1.2 expo.inOut |
-| reveal +0.7 | `[data-hero-fade]` | opacity 0, y 24 → 1, 0 · 1.0, stagger 0.1 |
+| reveal +0.7 | `[data-hero-fade]` | opacity 0, y 24 → 1, 0 · 1.0, stagger 0.1. `.hero__sub` is deliberately excluded (it's painted under the loader, so it counts for LCP) |
 | reveal +1.0 | `[data-badge]` | scale 0, rotation −90 → 1, 0 · 1.4 expo.out |
 | end | none | `html.is-loaded` |
 

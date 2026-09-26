@@ -16,9 +16,10 @@ Static podcast site. **No build step, no framework.** Keep it that way unless th
 - Don't use `-webkit-text-stroke` on Montserrat: the variable font's overlapping contours show through. Use solid fills.
 - The clock mark is `<symbol id="clock">`. Reuse it with `<use href="#clock">`; recolour via `--clock-ring` / `--clock-face`. When a hand must animate, inline the full SVG and mark the path (`data-hand`, `data-loader-hand`, `data-footer-hand`).
 - Logos are real PNGs (`assets/logo-white.png`, `assets/logo-navy.png`). Don't redraw the logo in type for the header or footer.
+- Purely decorative text (card numbers, marquee words, footer wordmark) is CSS generated content (`data-n` / `data-w` / `data-t` + `::before`), not DOM text. Keep new decorative type the same way.
 
 ## Motion rules
-1. **Create ScrollTriggers in DOM order.** Pinned sections add spacing that shifts every later trigger.
+1. **Create ScrollTriggers in DOM order.** Pinned sections add spacing that shifts every later trigger. Section setup (03–11) goes inside `step(() => { … })` so it runs in the queued, chunked order.
 2. **Never hide content with CSS start states.** Set start states with `gsap.set` or `fromTo` so content stays visible when JS or GSAP fails.
 3. **Use `fromTo`, not `from`.**
 4. Pinned sequences need `scrub: 1`, `invalidateOnRefresh: true` and function-based values, and must be created inside `mm.add(TALL, …)` so short viewports get the flow layout.
@@ -40,7 +41,9 @@ Static podcast site. **No build step, no framework.** Keep it that way unless th
 - Both pinned sections (integrity, conversations) show all content by their end, with nothing clipped.
 - Run once with reduced motion emulated and once with JavaScript disabled; confirm all content shows and the conversations row scrolls.
 - Keyboard: first Tab shows the skip link; the drawer traps Tab and Escape returns focus to the burger.
-- axe-core: only the decorative, `aria-hidden` card numbers and marquee ghost words may fail colour contrast.
+- axe-core: zero violations in static mode (decorative text is CSS content). In motion mode only elements caught mid-fade may flag.
+- Deep links: `/#book` and `/#contact` must land with the section top at 0.
+- Lighthouse (mobile) ≥ 90 performance, 100 accessibility / best practices / SEO.
 
 ## Content rules
 - No fabricated episodes, guests, testimonials, stats, download numbers or awards. Only use facts supplied by the owner.

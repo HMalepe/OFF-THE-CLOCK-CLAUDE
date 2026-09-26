@@ -76,7 +76,11 @@ const LINKS = {
 
 Any empty value shows a small **"Soon"** badge, and the button sends visitors to the newsletter (or contact form) instead of a dead link. Paste a URL and every matching button on the page goes live.
 
-Below it are `SIGNUP_ENDPOINT` (newsletter provider) and `ENQUIRY_ENDPOINT` (form backend such as Formspree or Netlify Forms). With no endpoint, the enquiry form opens a pre-filled email to `LINKS.email`. With neither set, it shows "enquiries open very soon".
+Below it are `SIGNUP_ENDPOINT` (newsletter provider) and `ENQUIRY_ENDPOINT` (form backend such as Formspree).
+
+**Easiest option — Netlify:** deploy on Netlify and set `FORMS_PROVIDER = 'netlify'`. Both forms already carry `data-netlify`, so submissions land in *Site → Forms* in your Netlify dashboard with no other setup (spam honeypot included).
+
+With no endpoint or provider, the enquiry form opens a pre-filled email to `LINKS.email`. With neither set, it shows "enquiries open very soon".
 
 ## Adding an episode
 
@@ -93,6 +97,9 @@ Duplicate the `<li class="ep ep--feature">` block in section 06. Swap the image,
 | `book-winning-in-africa.jpg` | The supplied cover |
 | `*.webp` | WebP copies of every photo, served first through `<picture>` (JPG fallback) |
 | `og.jpg` | 1200×630 social share image built from the above |
+| `privacy.html` | POPIA-structured privacy notice template describing what the site actually collects; blanks highlighted |
+| `404.html` | Branded not-found page (Netlify, Vercel and most static hosts serve it automatically) |
+| `robots.txt` | Allows crawling; add the sitemap line once the domain exists |
 | `favicon.svg`, `apple-touch-icon.png`, `icon-512.png` | The clock mark (also used by `site.webmanifest`) |
 
 The source photo is 1280×960, so the studio and portrait crops are ~780px and ~400px wide. They're displayed at about that size so they stay sharp. **If you get the original high-res photo, re-export `studio.jpg` (≥1600px wide) and `peter.jpg` (≥900px wide) at the same framing.**
@@ -105,7 +112,7 @@ The source photo is 1280×960, so the studio and portrait crops are ~780px and ~
 - [ ] Confirm the host bio and the book description with Peter.
 - [ ] Replace the "More conversations on the way" card with real episodes once they're live.
 - [ ] Make `og:image` an absolute URL (`https://yourdomain/assets/og.jpg`) — most social scrapers ignore relative paths. Add `url` to the JSON-LD too.
-- [ ] Privacy page (POPIA: the newsletter + enquiry form collect personal data) and link it in the footer.
+- [ ] Complete `privacy.html`: fill in every highlighted [bracketed] item (responsible party, Information Officer, providers, retention), have it reviewed, then delete the yellow "Before launch" box.
 - [ ] Set `og:url` and `<link rel="canonical">` to the live domain.
 - [ ] Higher-resolution studio photo if available (see Assets).
 - [ ] Test on a real phone (iOS Safari + Android Chrome).
