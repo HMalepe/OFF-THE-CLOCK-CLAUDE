@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Off The Clock — A Leadership &amp; Wellbeing Podcast</title>
+  <meta name="description" content="Off The Clock is a leadership and wellbeing podcast co-founded by Peter Mehlape, author of Winning in Africa: Your Next 8 Moves. Honest conversations about leading well and living well.">
+  <meta name="theme-color" content="#0E2340">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <!-- TODO before launch: set og:url + <link rel="canonical"> to the live domain -->
+  <meta property="og:title" content="Off The Clock — A Leadership &amp; Wellbeing Podcast">
+  <meta property="og:description" content="Leadership, off the clock. Honest conversations about leading well and living well, with Peter Mehlape.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Flag JS + reduced motion before first paint (prevents a flash of the loader in static mode) -->
+  <script>
+    document.documentElement.classList.add('js');
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('static');
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Reusable clock mark (the "O" in the logo). <use href="#clock"> renders it anywhere. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="clock" viewBox="0 0 100 100">
+      <!-- inline styles so each <use> can recolour it via --clock-ring / --clock-face -->
+      <circle cx="50" cy="50" r="50" style="fill:var(--clock-ring,#70CDDE)"/>
+      <circle cx="50" cy="50" r="22" style="fill:var(--clock-face,#0E2340)"/>
+      <path d="M50 50V28A22 22 0 0 1 72 50Z" style="fill:var(--clock-ring,#70CDDE)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ============================================================
+     00 · LOADER — the clock hand sweeps, wordmark rises, curtain lifts
+     (hidden in .static, CSS safety timeout 5s)
+     ============================================================ -->
+<div class="loader" aria-hidden="true">
+  <div class="loader__inner">
+    <svg class="clock loader__clock" viewBox="0 0 100 100">
+      <circle class="clock__ring" cx="50" cy="50" r="50"/>
+      <circle class="clock__face" cx="50" cy="50" r="22"/>
+      <path class="clock__hand" data-loader-hand d="M50 50V28A22 22 0 0 1 72 50Z"/>
+    </svg>
+    <span class="loader__word"><span>Off</span> <span>the</span> <span>clock</span></span>
+    <span class="loader__rule"></span>
+    <span class="loader__tag">A Leadership &amp; Wellbeing Podcast</span>
+  </div>
+</div>
+
+<!-- ============================================================
+     01 · HEADER — logo left, inline nav (desktop), Listen CTA, burger (≤1024px)
+     ============================================================ -->
+<header class="hdr" data-hdr>
+  <a class="hdr__brand" href="#top" aria-label="Off The Clock — home">
+    <img src="assets/logo-white.png" alt="Off The Clock" width="1244" height="484">
+  </a>
+  <nav class="hdr__nav" aria-label="Primary">
+    <a href="#show">The show</a>
+    <a href="#episodes">Episodes</a>
+    <a href="#host">The host</a>
+    <a href="#book">The book</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="hdr__end">
+    <a class="btn btn--sky hdr__cta" href="#episodes">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>
+      <span>Listen</span>
+    </a>
+    <button class="hdr__burger" type="button" aria-expanded="false" aria-controls="drawer" data-menu-open>
+      <span class="sr">Open menu</span>
+      <i></i><i></i><i></i>
+    </button>
+  </div>
+</header>
+
+<!-- Off-canvas drawer (right) -->
+<div class="drawer-scrim" data-menu-close></div>
+<aside class="drawer" id="drawer" aria-label="Main menu" inert>
+  <button class="drawer__close" type="button" data-menu-close><span class="sr">Close menu</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+  <img class="drawer__logo" src="assets/logo-navy.png" alt="" width="1244" height="484">
+  <nav class="drawer__nav" aria-label="Menu">
+    <a href="#show"><span>01</span>The show</a>
+    <a href="#episodes"><span>02</span>Episodes</a>
+    <a href="#topics"><span>03</span>Conversations</a>
+    <a href="#host"><span>04</span>The host</a>
+    <a href="#book"><span>05</span>The book</a>
+    <a href="#faq"><span>06</span>FAQ</a>
+    <a href="#contact"><span>07</span>Contact</a>
+  </nav>
+  <p class="drawer__title">Listen on</p>
+  <div class="drawer__social">
+    <a href="#newsletter" data-link="spotify">Spotify</a>
+    <a href="#newsletter" data-link="apple">Apple Podcasts</a>
+    <a href="#newsletter" data-link="youtube">YouTube</a>
+  </div>
+</aside>
+
+<main id="main">
+
+<!-- ============================================================
+     02 · HERO — split: headline + platforms left, studio photo right
+     ============================================================ -->
+<section class="hero section--navy" id="top">
+  <!-- decorative clock dial behind everything -->
+  <svg class="hero__dial" viewBox="0 0 400 400" aria-hidden="true" data-hero-dial>
+    <circle cx="200" cy="200" r="198" />
+    <g class="hero__ticks"></g>
+  </svg>
+
+  <div class="wrap hero__grid">
+    <div class="hero__content" data-hero-content>
+      <p class="eyebrow eyebrow--sky" data-hero-fade><span class="dot"></span>Season One · A Leadership &amp; Wellbeing Podcast</p>
+      <h1 class="hero__title" data-split="hero">
+        <span class="line">Leadership,</span>
+        <span class="line"><em>off the clock.</em></span>
+      </h1>
+      <span class="rule" data-hero-rule></span>
+      <p class="hero__sub" data-hero-fade>Honest conversations about leading well and living well — the lessons that don't fit on an agenda, recorded after the meeting is over.</p>
+      <div class="hero__actions" data-hero-fade>
+        <a class="btn btn--sky" href="#episodes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>
+          Start listening
+        </a>
+        <a class="tlink" href="#host">Meet the host</a>
+      </div>
+      <div class="plats" data-hero-fade>
+        <span class="plats__label">Listen on</span>
+        <a class="plat" href="#newsletter" data-link="spotify" aria-label="Spotify">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M7.2 9.4c3.3-1 6.9-.7 9.8.9M7.8 12.4c2.7-.8 5.6-.5 8 .8M8.4 15.2c2.1-.6 4.2-.4 6.1.6"/></svg>
+          <span>Spotify</span>
+        </a>
+        <a class="plat" href="#newsletter" data-link="apple" aria-label="Apple Podcasts">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="2.6"/><path d="M11 14.4h2l-.5 6h-1zM7.4 15.4a6.5 6.5 0 1 1 9.2 0"/><path d="M4.6 17.8a9.5 9.5 0 1 1 14.8 0"/></svg>
+          <span>Apple Podcasts</span>
+        </a>
+        <a class="plat" href="#newsletter" data-link="youtube" aria-label="YouTube">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path class="fill" d="M10 9.2v5.6l4.8-2.8z"/></svg>
+          <span>YouTube</span>
+        </a>
+      </div>
+    </div>
+
+    <figure class="hero__media" data-hero-media>
+      <div class="hero__frame" data-hero-frame>
+        <div class="ph" data-hero-img>
+          <img src="assets/studio.jpg" alt="Peter Mehlape and a guest at the Off The Clock studio table, two podcast microphones between them and the word 'integrity' on the wall behind" width="780" height="824" fetchpriority="high" decoding="async">
+        </div>
+      </div>
+      <figcaption class="hero__cap" data-hero-fade><span class="rule rule--sm"></span>Behind the mic</figcaption>
+      <!-- rotating badge around the clock mark -->
+      <div class="badge" data-badge aria-hidden="true">
+        <svg class="badge__text" viewBox="0 0 200 200">
+          <defs><path id="badge-circle" d="M100 100m-78 0a78 78 0 1 1 156 0a78 78 0 1 1-156 0"/></defs>
+          <text><textPath href="#badge-circle">LEAD WELL · LIVE WELL · OFF THE CLOCK ·</textPath></text>
+        </svg>
+        <svg class="clock badge__clock"><use href="#clock"/></svg>
+      </div>
+    </figure>
+  </div>
+
+  <a class="hero__cue" href="#show" aria-label="Scroll to the show" data-hero-fade>
+    <span>Scroll</span>
+    <i></i>
+  </a>
+</section>
+
+<!-- ============================================================
+     03 · THE SHOW — statement + copy + three pillars
+     ============================================================ -->
+<section class="show section--paper" id="show">
+  <div class="wrap show__grid">
+    <div class="show__head">
+      <p class="eyebrow" data-fade>The show</p>
+      <h2 class="h-display" data-split data-speed="0.85">The work that shapes a leader rarely happens <em>nine to five.</em></h2>
+    </div>
+    <div class="show__copy">
+      <p class="lead" data-fade>Off The Clock is a leadership and wellbeing podcast about the part of leading that happens when the meeting ends — the pressure you carry home, the decisions you replay at night, and the habits that keep you whole.</p>
+      <p data-fade>Every conversation sits at the same table: what it really takes to lead people, build something that lasts, and stay well while you do it. No scripts, no polished keynote answers. Just the lessons people usually only share off the record.</p>
+      <ol class="pillars" data-stagger>
+        <li>
+          <svg class="clock clock--sm"><use href="#clock"/></svg>
+          <div><strong>Leadership</strong><span>Decisions, culture and the weight of responsibility.</span></div>
+        </li>
+        <li>
+          <svg class="clock clock--sm clock--q2"><use href="#clock"/></svg>
+          <div><strong>Wellbeing</strong><span>Energy, rest and boundaries for people who carry a lot.</span></div>
+        </li>
+        <li>
+          <svg class="clock clock--sm clock--q3"><use href="#clock"/></svg>
+          <div><strong>Africa</strong><span>Building businesses and careers on the continent.</span></div>
+        </li>
+      </ol>
+      <a class="tlink tlink--ink" href="#episodes" data-fade>Hear the latest episode</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     04 · INTEGRITY — PINNED: the studio wall as typography.
+          The word rises, then three definitions (the show's principles) light up in turn.
+     ============================================================ -->
+<section class="integrity section--navy" id="integrity" data-pin="integrity">
+  <div class="integrity__stage">
+    <div class="integrity__bg" data-int-bg aria-hidden="true"></div>
+    <div class="wrap integrity__inner">
+      <div class="integrity__word">
+        <h2 class="integrity__title" data-int-title>integrity</h2>
+        <p class="integrity__ipa" data-int-ipa>/ɪnˈtɛɡrɪti/</p>
+        <p class="integrity__pos" data-int-ipa><em>noun</em></p>
+      </div>
+      <ol class="defs">
+        <li data-def><span>1.</span><div><strong>Honest conversations.</strong><em>We say what we mean — on the mic and off it.</em></div></li>
+        <li data-def><span>2.</span><div><strong>Practical wisdom.</strong><em>Lessons you can use on Monday morning, not just applaud on Friday.</em></div></li>
+        <li data-def><span>3.</span><div><strong>The whole person.</strong><em>Leadership and wellbeing are the same conversation.</em></div></li>
+      </ol>
+      <p class="integrity__note" data-int-note>We record at a table with this word on the wall. We took it personally.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     04b · MARQUEE — continuous ticker; speeds up / reverses with scroll velocity
+     ============================================================ -->
+<section class="marquee section--navy" aria-hidden="true">
+  <div class="marquee__row" data-marquee>
+    <div class="marquee__set"><span>Leadership</span><svg class="clock"><use href="#clock"/></svg><span>Wellbeing</span><svg class="clock"><use href="#clock"/></svg><span>Integrity</span><svg class="clock"><use href="#clock"/></svg><span>Winning in Africa</span><svg class="clock"><use href="#clock"/></svg><span>Off the clock</span><svg class="clock"><use href="#clock"/></svg></div>
+    <div class="marquee__set"><span>Leadership</span><svg class="clock"><use href="#clock"/></svg><span>Wellbeing</span><svg class="clock"><use href="#clock"/></svg><span>Integrity</span><svg class="clock"><use href="#clock"/></svg><span>Winning in Africa</span><svg class="clock"><use href="#clock"/></svg><span>Off the clock</span><svg class="clock"><use href="#clock"/></svg></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     05 · TOPICS — PINNED horizontal gallery of conversation themes.
+          Each card's clock hand turns as the card crosses the screen.
+     ============================================================ -->
+<section class="topics section--deep" id="topics" data-pin="topics">
+  <div class="topics__stage">
+    <div class="topics__head wrap">
+      <div>
+        <p class="eyebrow eyebrow--sky" data-fade>Conversations</p>
+        <h2 class="h-display" data-split>What we talk about</h2>
+      </div>
+      <p class="topics__hint" data-fade>Keep scrolling <span aria-hidden="true">→</span></p>
+    </div>
+    <div class="topics__viewport">
+      <div class="topics__track" data-track>
+        <article class="tcard tcard--navy">
+          <span class="tcard__num">01</span>
+          <svg class="clock tcard__clock" viewBox="0 0 100 100"><circle class="clock__ring" cx="50" cy="50" r="50"/><circle class="clock__face" cx="50" cy="50" r="22"/><path class="clock__hand" data-hand d="M50 50V28A22 22 0 0 1 72 50Z"/></svg>
+          <div class="tcard__body"><h3 class="tcard__label">Leading under pressure</h3><p class="tcard__meta">Decisions, accountability and staying steady when the stakes are high and the room is watching.</p></div>
+        </article>
+        <article class="tcard tcard--sky">
+          <span class="tcard__num">02</span>
+          <svg class="clock tcard__clock" viewBox="0 0 100 100"><circle class="clock__ring" cx="50" cy="50" r="50"/><circle class="clock__face" cx="50" cy="50" r="22"/><path class="clock__hand" data-hand d="M50 50V28A22 22 0 0 1 72 50Z"/></svg>
+          <div class="tcard__body"><h3 class="tcard__label">Wellbeing that lasts</h3><p class="tcard__meta">Energy, rest, health and boundaries — for people who look after everyone except themselves.</p></div>
+        </article>
+        <article class="tcard tcard--paper">
+          <span class="tcard__num">03</span>
+          <svg class="clock tcard__clock" viewBox="0 0 100 100"><circle class="clock__ring" cx="50" cy="50" r="50"/><circle class="clock__face" cx="50" cy="50" r="22"/><path class="clock__hand" data-hand d="M50 50V28A22 22 0 0 1 72 50Z"/></svg>
+          <div class="tcard__body"><h3 class="tcard__label">Winning in Africa</h3><p class="tcard__meta">Building businesses and careers on the continent — deliberately, one move at a time.</p></div>
+        </article>
+        <article class="tcard tcard--gold">
+          <span class="tcard__num">04</span>
+          <svg class="clock tcard__clock" viewBox="0 0 100 100"><circle class="clock__ring" cx="50" cy="50" r="50"/><circle class="clock__face" cx="50" cy="50" r="22"/><path class="clock__hand" data-hand d="M50 50V28A22 22 0 0 1 72 50Z"/></svg>
+          <div class="tcard__body"><h3 class="tcard__label">Culture &amp; teams</h3><p class="tcard__meta">Building teams people want to show up for — and keeping your word when it costs you.</p></div>
+        </article>
+        <article class="tcard tcard--ink">
+          <span class="tcard__num">05</span>
+          <svg class="clock tcard__clock" viewBox="0 0 100 100"><circle class="clock__ring" cx="50" cy="50" r="50"/><circle class="clock__face" cx="50" cy="50" r="22"/><path class="clock__hand" data-hand d="M50 50V28A22 22 0 0 1 72 50Z"/></svg>
+          <div class="tcard__body"><h3 class="tcard__label">Life off the clock</h3><p class="tcard__meta">Family, health and purpose — the parts of life that make the work worth doing.</p></div>
+        </article>
+      </div>
+    </div>
+    <div class="topics__progress" aria-hidden="true"><span data-track-bar></span></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     06 · EPISODES — featured episode + "in production" card
+     To add an episode: duplicate the .ep block. Platform links come from LINKS in js/main.js.
+     ============================================================ -->
+<section class="episodes section--paper" id="episodes">
+  <div class="wrap">
+    <header class="sec-head">
+      <p class="eyebrow" data-fade>Episodes</p>
+      <h2 class="h-display" data-split>Pull up a chair</h2>
+      <p class="sec-head__lead" data-fade>Two microphones, one table and the conversations leaders don't usually have in public.</p>
+    </header>
+
+    <ul class="epgrid" data-batch>
+      <li class="ep ep--feature" data-tilt>
+        <div class="ep__media"><div class="zoom"><div class="ph">
+          <img src="assets/promo-introducing-peter.jpg" alt="Introducing Peter Mehlape — Co-Founder of Off The Clock and author of Winning in Africa, pictured behind the mic in the studio" width="1280" height="960" loading="lazy" decoding="async">
+        </div></div></div>
+        <div class="ep__body">
+          <span class="tag">Now introducing</span>
+          <h3>Introducing Peter Mehlape</h3>
+          <p>Meet the co-founder behind the mic: author of <em>Winning in Africa: Your Next 8 Moves</em>, and the reason this table exists.</p>
+          <div class="ep__listen">
+            <a class="btn btn--navy" href="#newsletter" data-link="spotify">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>Spotify
+            </a>
+            <a class="btn btn--line" href="#newsletter" data-link="apple">Apple Podcasts</a>
+            <a class="btn btn--line" href="#newsletter" data-link="youtube">YouTube</a>
+          </div>
+        </div>
+      </li>
+      <li class="ep ep--next">
+        <div class="ep__wave" aria-hidden="true" data-wave>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="ep__body">
+          <span class="tag tag--sky">In production</span>
+          <h3>Season One is being recorded</h3>
+          <p>New conversations are on the way. Get them in your inbox the day they drop.</p>
+          <a class="btn btn--sky" href="#newsletter">Notify me</a>
+        </div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================
+     07 · HOST — portrait + bio + credentials
+     ============================================================ -->
+<section class="host section--navy" id="host">
+  <div class="wrap host__grid">
+    <div class="host__media" data-host-media>
+      <div class="host__frame">
+        <div class="ph" data-drift>
+          <img src="assets/peter.jpg" alt="Portrait of Peter Mehlape smiling at the studio table beside a podcast microphone" width="400" height="550" loading="lazy" decoding="async">
+        </div>
+      </div>
+      <svg class="clock host__clock" aria-hidden="true"><use href="#clock"/></svg>
+    </div>
+    <div class="host__copy">
+      <p class="eyebrow eyebrow--sky" data-fade>Co-founder &amp; host</p>
+      <h2 class="h-display h-display--xl" data-split>Peter Mehlape</h2>
+      <span class="rule" data-fade></span>
+      <p class="lead" data-fade>Peter is the co-founder of Off The Clock and the author of <em>Winning in Africa: Your Next 8 Moves for Business Success in Africa</em>.</p>
+      <p data-fade>On the show he sits down for the conversations leaders rarely have in public — about pressure and purpose, health and ambition, and what it really takes to build something that lasts on this continent.</p>
+      <dl class="creds" data-stagger>
+        <div><dt>Co-Founder</dt><dd>Off The Clock</dd></div>
+        <div><dt>Author</dt><dd>Winning in Africa</dd></div>
+        <div><dt>Foreword</dt><dd>Shameel Joosub, Vodacom Group CEO</dd></div>
+      </dl>
+      <a class="tlink" href="#contact" data-topic="Book Peter to speak" data-fade>Invite Peter to speak</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     08 · BOOK — Winning in Africa: 3D cover + eight moves
+     ============================================================ -->
+<section class="book section--sky" id="book">
+  <div class="wrap book__grid">
+    <div class="book__stage">
+      <div class="book3d-scroll" data-book-scroll>
+        <div class="book3d" data-book>
+          <div class="book3d__cover">
+            <img src="assets/book-winning-in-africa.jpg" alt="Cover of Winning in Africa: Your Next 8 Moves for Business Success in Africa by Peter Mehlape, foreword by Vodacom Group CEO Shameel Joosub" width="854" height="1280" loading="lazy" decoding="async">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="book__copy">
+      <p class="eyebrow" data-fade>The book</p>
+      <h2 class="h-display h-display--xl" data-split>Winning in Africa</h2>
+      <p class="book__sub" data-fade>Your Next <strong>8 Moves</strong> for Business Success in Africa</p>
+      <div class="moves" aria-label="Eight moves" data-moves>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <p data-fade>Peter's playbook for building business success on the continent, set out as eight deliberate moves. The same thinking runs through every Off The Clock conversation: win the long game without losing yourself.</p>
+      <p class="book__fwd" data-fade>Foreword by Vodacom Group CEO, <strong>Shameel Joosub</strong></p>
+      <div class="book__actions" data-fade>
+        <a class="btn btn--navy" href="#contact" data-link="book" data-topic="Order Winning in Africa">Get the book</a>
+        <a class="tlink tlink--ink" href="#contact" data-topic="Order Winning in Africa">Bulk &amp; corporate orders</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     09 · FAQ
+     ============================================================ -->
+<section class="faq section--paper" id="faq">
+  <div class="wrap faq__grid">
+    <header class="sec-head" data-speed="0.85">
+      <p class="eyebrow" data-fade>FAQ</p>
+      <h2 class="h-display" data-split>Good questions</h2>
+      <p class="sec-head__lead" data-fade>Something else on your mind? <a class="inline" href="#contact">Ask us directly.</a></p>
+    </header>
+    <div class="faq__list">
+      <details data-fade><summary>What is Off The Clock?</summary><p>A leadership and wellbeing podcast co-founded by Peter Mehlape. Each episode is an honest conversation about leading well and living well — the lessons people usually only share off the record.</p></details>
+      <details data-fade><summary>Who is it for?</summary><p>Leaders, founders, managers and anyone carrying responsibility for other people — and anyone who wants to do that without burning out.</p></details>
+      <details data-fade><summary>Where can I listen?</summary><p>On the major podcast platforms. The links on this page go live as each platform launches — subscribe to the newsletter and you'll hear the moment they do.</p></details>
+      <details data-fade><summary>Can I suggest a guest or a topic?</summary><p>Please do. Use the enquiry form below and choose “Be a guest / suggest one”. Tell us who they are and what the conversation should be about.</p></details>
+      <details data-fade><summary>Can Peter speak at our event?</summary><p>Yes. Send a short brief through the enquiry form — the date, audience and what you'd like people to leave with.</p></details>
+      <details data-fade><summary>Do you work with sponsors and partners?</summary><p>Selectively, and only with partners whose values fit the show. Choose “Partnerships” in the enquiry form.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     10 · CONTACT — newsletter (left) + enquiry form (right)
+     Endpoints and email live in LINKS / *_ENDPOINT in js/main.js
+     ============================================================ -->
+<section class="contact section--navy" id="contact">
+  <div class="wrap contact__grid">
+    <div class="contact__letter" id="newsletter">
+      <svg class="clock contact__clock" aria-hidden="true"><use href="#clock"/></svg>
+      <h2 class="h-display" data-split>Clock out <em>with us</em></h2>
+      <p data-fade>New episodes, the one idea worth keeping from each conversation, and first word on events. Straight to your inbox.</p>
+      <form class="signup" data-signup data-fade action="#" method="post" novalidate>
+        <label class="sr" for="email">Email address</label>
+        <input id="email" name="email" type="email" placeholder="Your email address" autocomplete="email" required>
+        <button class="btn btn--sky" type="submit">Subscribe</button>
+        <p class="signup__msg" data-signup-msg role="status"></p>
+      </form>
+      <p class="fine" data-fade>No spam. Unsubscribe any time.</p>
+    </div>
+
+    <div class="contact__form" data-fade>
+      <h3>Work with us</h3>
+      <p>Guests, speaking, partnerships and book orders.</p>
+      <form class="enquiry" data-enquiry action="#" method="post" novalidate>
+        <div class="field">
+          <label for="q-name">Name</label>
+          <input id="q-name" name="name" type="text" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="q-email">Email</label>
+          <input id="q-email" name="email" type="email" autocomplete="email" required>
+        </div>
+        <div class="field field--full">
+          <label for="q-topic">I'd like to…</label>
+          <select id="q-topic" name="topic">
+            <option>Be a guest / suggest one</option>
+            <option>Book Peter to speak</option>
+            <option>Partnerships &amp; sponsorship</option>
+            <option>Order Winning in Africa</option>
+            <option>Something else</option>
+          </select>
+        </div>
+        <div class="field field--full">
+          <label for="q-msg">Message</label>
+          <textarea id="q-msg" name="message" rows="4" required></textarea>
+        </div>
+        <!-- honeypot: humans never see or fill this -->
+        <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="btn btn--light" type="submit">Send enquiry</button>
+        <p class="signup__msg" data-enquiry-msg role="status"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================================================
+     11 · FOOTER — logo, tagline, socials, link row, giant rising wordmark
+     ============================================================ -->
+<footer class="ftr" id="footer">
+  <div class="wrap ftr__top">
+    <img class="ftr__logo" src="assets/logo-white.png" alt="Off The Clock" width="1244" height="484" loading="lazy">
+    <p class="ftr__script">Lead well. Live well.</p>
+    <ul class="ftr__social" data-stagger>
+      <li><a href="#newsletter" data-link="spotify" aria-label="Spotify"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M7.2 9.4c3.3-1 6.9-.7 9.8.9M7.8 12.4c2.7-.8 5.6-.5 8 .8M8.4 15.2c2.1-.6 4.2-.4 6.1.6"/></svg></a></li>
+      <li><a href="#newsletter" data-link="apple" aria-label="Apple Podcasts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="2.6"/><path d="M11 14.4h2l-.5 6h-1zM7.4 15.4a6.5 6.5 0 1 1 9.2 0"/><path d="M4.6 17.8a9.5 9.5 0 1 1 14.8 0"/></svg></a></li>
+      <li><a href="#newsletter" data-link="youtube" aria-label="YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path class="fill" d="M10 9.2v5.6l4.8-2.8z"/></svg></a></li>
+      <li><a href="#newsletter" data-link="instagram" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9" class="fill"/></svg></a></li>
+      <li><a href="#newsletter" data-link="linkedin" aria-label="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M8 10.5V16M8 7.8v.1M11.5 16v-5.5M11.5 13c0-1.6 1-2.6 2.3-2.6s2.2.9 2.2 2.6v3"/></svg></a></li>
+      <li><a href="#contact" data-link="email" aria-label="Email"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="1.5"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></a></li>
+    </ul>
+  </div>
+  <nav class="ftr__links wrap" aria-label="Footer" data-stagger>
+    <a href="#show">The show</a><a href="#episodes">Episodes</a><a href="#host">The host</a><a href="#book">The book</a><a href="#faq">FAQ</a><a href="#contact">Contact</a>
+  </nav>
+  <div class="wrap ftr__base" data-fade>
+    <p>Conversations on Off The Clock are for general information and aren't professional, financial or medical advice.</p>
+    <p>© <span data-year>2026</span> Off The Clock™ · All rights reserved.</p>
+  </div>
+  <div class="ftr__mark" aria-hidden="true">
+    <span data-footer-mark>Off the cl<svg class="clock ftr__o" viewBox="0 0 100 100"><circle class="clock__ring" cx="50" cy="50" r="50"/><circle class="clock__face" cx="50" cy="50" r="22"/><path class="clock__hand" data-footer-hand d="M50 50V28A22 22 0 0 1 72 50Z"/></svg>ck</span>
+  </div>
+</footer>
+
+<!-- BACK TO TOP — floating button with scroll-progress ring -->
+<a class="totop" href="#top" data-totop aria-label="Back to top">
+  <svg class="totop__ring" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" class="totop__track"/><circle cx="24" cy="24" r="22" class="totop__bar" data-totop-bar pathLength="1"/></svg>
+  <svg class="totop__arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>
+</a>
+
+<script src="js/vendor/gsap.min.js"></script>
+<script src="js/vendor/ScrollTrigger.min.js"></script>
+<script src="js/vendor/lenis.min.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
