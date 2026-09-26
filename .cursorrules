@@ -30,17 +30,21 @@ Static podcast site. **No build step, no framework.** Keep it that way unless th
 11. Desktop-only motion goes through the shared `mm = gsap.matchMedia()` (`DESKTOP` query).
 
 ## Static mode
-`html.static` is added when `prefers-reduced-motion: reduce` is set or GSAP is missing. No loader, no pins, no Lenis, everything visible, the conversations track is a native swipe row. Every new feature must work and be readable in static mode.
+`<html class="static">` ships in the markup so the page is complete with JavaScript off. The head script removes it unless `prefers-reduced-motion: reduce` is set; `main.js` adds it back if GSAP is missing. Never remove the class from the markup. No loader, no pins, no Lenis, everything visible, the conversations track is a native swipe row. Every new feature must work and be readable in static mode.
 
 ## Testing (before calling anything done)
 - Widths: **390×844**, **1280×800** and **1440×900**.
 - `document.documentElement.scrollWidth - innerWidth === 0` (no horizontal scroll).
 - No console errors (blocked Google Fonts in sandboxes are fine).
 - Both pinned sections (integrity, conversations) show all content by their end, with nothing clipped.
-- Run once with reduced motion emulated and confirm all content shows.
+- Run once with reduced motion emulated and once with JavaScript disabled; confirm all content shows and the conversations row scrolls.
+- Keyboard: first Tab shows the skip link; the drawer traps Tab and Escape returns focus to the burger.
+- axe-core: only the decorative, `aria-hidden` card numbers and marquee ghost words may fail colour contrast.
 
 ## Content rules
 - No fabricated episodes, guests, testimonials, stats, download numbers or awards. Only use facts supplied by the owner.
 - Known facts: Peter Mehlape is Co-Founder of Off The Clock (a Leadership & Wellbeing Podcast) and author of *Winning in Africa: Your Next 8 Moves for Business Success in Africa*, foreword by Vodacom Group CEO Shameel Joosub.
 - Don't name the other person in the studio photo unless the owner supplies the name.
 - Keep the footer disclaimer (general information, not professional/financial/medical advice).
+- Don't claim a season, release schedule or production status the owner hasn't confirmed.
+- The clock-out check is self-reflection only: no health claims, no scores stored or sent.

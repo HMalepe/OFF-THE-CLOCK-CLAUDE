@@ -61,6 +61,7 @@
     } else {
       a.classList.add('is-soon');
       a.title = 'Coming soon';
+      a.setAttribute('aria-label', `${a.getAttribute('aria-label') || a.textContent.trim()} (coming soon)`);
     }
   });
 
@@ -90,7 +91,9 @@
   const toTop = $('[data-totop]');
   const toTopBar = $('[data-totop-bar]');
   let lastY = window.scrollY;
-  const onScroll = () => {
+  let ticking = false;
+  const update = () => {
+    ticking = false;
     const y = window.scrollY;
     const vh = window.innerHeight;
     const past = y > vh * 0.35;
@@ -103,9 +106,26 @@
     else if (y < lastY - 2 || !past) hdr.classList.remove('is-hidden');
     lastY = y;
   };
+  // rAF-throttled: one layout read per frame, however fast scroll events fire
+  const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
-  onScroll();
+  update();
+
+  // Current section → aria-current on the header nav (desktop)
+  const spyLinks = $$('[data-spy] a');
+  if ('IntersectionObserver' in window && spyLinks.length) {
+    const byId = new Map(spyLinks.map((a) => [a.getAttribute('href').slice(1), a]));
+    const spy = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        spyLinks.forEach((a) => a.removeAttribute('aria-current'));
+        const a = byId.get(en.target.id);
+        if (a) a.setAttribute('aria-current', 'true');
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    $$('main > section[id]').forEach((sec) => spy.observe(sec));
+  }
 
   // Off-canvas menu (items stagger in when motion is on)
   const drawer = $('#drawer');
@@ -128,7 +148,16 @@
   };
   burger.addEventListener('click', openMenu);
   $$('[data-menu-close]').forEach((b) => b.addEventListener('click', closeMenu));
-  document.addEventListener('keydown', (e) => e.key === 'Escape' && closeMenu());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeMenu(); return; }
+    // keep Tab inside the open drawer
+    if (e.key !== 'Tab' || !root.classList.contains('menu-open')) return;
+    const f = $$('a[href], button:not([disabled])', drawer);
+    const first = f[0];
+    const last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
 
   // In-page anchors (smooth via Lenis when available). [data-topic] pre-selects the enquiry topic.
   const topicSelect = $('#q-topic');
@@ -143,9 +172,14 @@
     if (a.dataset.topic && topicSelect) topicSelect.value = a.dataset.topic;
     const wasOpen = root.classList.contains('menu-open');
     closeMenu();
+    // move keyboard focus with the scroll so the next Tab continues from the target
+    const land = () => {
+      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+    };
     const go = () => {
-      if (lenis) lenis.scrollTo(target, { duration: 1.4, offset: target.tagName === 'SECTION' ? 0 : -96 });
-      else target.scrollIntoView({ behavior: motionOK ? 'smooth' : 'auto' });
+      if (lenis) lenis.scrollTo(target, { duration: 1.4, offset: target.tagName === 'SECTION' ? 0 : -96, onComplete: land });
+      else { target.scrollIntoView({ behavior: motionOK ? 'smooth' : 'auto' }); land(); }
     };
     wasOpen ? setTimeout(go, 120) : go();
     history.replaceState(null, '', id === '#top' ? location.pathname : id);
@@ -162,12 +196,17 @@
     const say = (t) => { msg.textContent = t; enter(msg, { y: 8, duration: 0.6 }); };
     if (!EMAIL_RE.test(email)) { say('Please enter a valid email address.'); form.email.focus(); return; }
     if (!SIGNUP_ENDPOINT) { say('Almost there — sign-ups open very soon.'); return; }
+    const btn = $('[type="submit"]', form);
+    if (btn.disabled) return;
+    btn.disabled = true;
     try {
       const res = await fetch(SIGNUP_ENDPOINT, { method: 'POST', body: new FormData(form) });
       say(res.ok ? "You're in. Check your inbox to confirm." : 'Something went wrong — please try again.');
       if (res.ok) form.reset();
     } catch {
       say('Something went wrong — please try again.');
+    } finally {
+      btn.disabled = false;
     }
   });
 
@@ -183,12 +222,17 @@
     if (!EMAIL_RE.test(f.email.value.trim())) { say('Please enter a valid email address.'); f.email.focus(); return; }
     if (!f.message.value.trim()) { say('Please add a short message.'); f.message.focus(); return; }
     if (ENQUIRY_ENDPOINT) {
+      const btn = $('[type="submit"]', enq);
+      if (btn.disabled) return;
+      btn.disabled = true;
       try {
         const res = await fetch(ENQUIRY_ENDPOINT, { method: 'POST', body: new FormData(enq), headers: { Accept: 'application/json' } });
         say(res.ok ? "Thank you — we'll be in touch soon." : 'Something went wrong — please try again.');
         if (res.ok) enq.reset();
       } catch {
         say('Something went wrong — please try again.');
+      } finally {
+        btn.disabled = false;
       }
       return;
     }
@@ -202,6 +246,79 @@
     say('Thank you — enquiries open very soon. Subscribe on the left to hear when they do.');
   });
 
+  // Clock-out check — 3-question self-reflection (edit CHECK below). Nothing is stored or sent.
+  // `good` is the answer that means you're protecting time off the clock.
+  const CHECK = [
+    {
+      q: 'You checked work messages within an hour of waking up today.',
+      good: false,
+      why: "A quick look isn't a crime. But when it's automatic, the day starts on someone else's agenda.",
+    },
+    {
+      q: "You've taken a full day off in the last month without checking in.",
+      good: true,
+      why: 'Perspective rarely shows up between meetings. It needs a day with nothing on it.',
+    },
+    {
+      q: "The people at home would say you're fully present at dinner.",
+      good: true,
+      why: 'Presence is the part of leadership the people closest to you feel first.',
+    },
+  ];
+  const RESULTS = [
+    ['The clock is still running.', "You're in good company — that's exactly why this show exists. Start with one small boundary this week."],
+    ['The clock is still running.', "You're in good company — that's exactly why this show exists. Start with one small boundary this week."],
+    ['Almost off the clock.', "You've built some good habits. The conversations on the show are about protecting the rest."],
+    ['You know how to clock out.', "Rare, and worth protecting. We'd love to hear how you do it — tell us in the enquiry form."],
+  ];
+  const panel = $('[data-check]');
+  let qi = 0;
+  let score = 0;
+  const clockSvg = '<svg class="clock" aria-hidden="true"><use href="#clock"/></svg>';
+  const renderQ = (animate = true) => {
+    const item = CHECK[qi];
+    panel.innerHTML = `
+      <p class="q__count">Question ${qi + 1} of ${CHECK.length}<span class="q__bar"><i style="transform:scaleX(${(qi + 1) / CHECK.length})"></i></span></p>
+      <p class="q__text">${item.q}</p>
+      <div class="q__opts" role="group" aria-label="Your answer">
+        <button class="q__opt" type="button" data-ans="true">That's me</button>
+        <button class="q__opt" type="button" data-ans="false">Not me</button>
+      </div>`;
+    if (animate) { enter([...panel.children]); $('.q__opt', panel).focus({ preventScroll: true }); }
+  };
+  const renderEnd = () => {
+    const [title, text] = RESULTS[score];
+    panel.innerHTML = `
+      <p class="q__count">Your result</p>
+      <div class="q__score">${clockSvg}<strong>${title}</strong></div>
+      <p class="q__result">${text}</p>
+      <div class="q__opts">
+        <a class="btn btn--sky" href="#newsletter">Get new episodes</a>
+        <button class="q__opt" type="button" data-restart>Take it again</button>
+      </div>`;
+    enter([...panel.children]);
+    refresh();
+  };
+  panel.addEventListener('click', (e) => {
+    const opt = e.target.closest('[data-ans]');
+    if (opt) {
+      const item = CHECK[qi];
+      if (String(item.good) === opt.dataset.ans) score++;
+      $$('[data-ans]', panel).forEach((b) => { b.disabled = true; });
+      opt.classList.add('is-picked');
+      panel.insertAdjacentHTML('beforeend', `
+        <p class="q__why">${item.why}</p>
+        <button class="btn btn--light q__next" type="button" data-next>${qi < CHECK.length - 1 ? 'Next question' : 'See my result'}</button>`);
+      enter($$('.q__why, [data-next]', panel), { stagger: 0.1 });
+      $('[data-next]', panel).focus({ preventScroll: true });
+      refresh();
+      return;
+    }
+    if (e.target.closest('[data-next]')) { qi++; qi < CHECK.length ? renderQ() : renderEnd(); return; }
+    if (e.target.closest('[data-restart]')) { qi = 0; score = 0; renderQ(); refresh(); }
+  });
+  renderQ(false);
+
   // FAQ open/close changes page height → keep triggers accurate; answer eases in
   $$('.faq__list details').forEach((d) => d.addEventListener('toggle', () => {
     if (d.open) enter($('p', d), { y: -8, duration: 0.6 });
@@ -213,8 +330,13 @@
      ------------------------------------------------------------------------ */
   if (!motionOK) {
     root.classList.add('is-loaded');
+    const hint = $('[data-hint]');
+    if (hint) hint.textContent = 'Swipe or scroll sideways';
     return;
   }
+  // In motion mode the topics track is driven by the page scroll, so its viewport isn't a scroll region
+  const trackVp = $('[data-track-vp]');
+  if (trackVp) { trackVp.removeAttribute('tabindex'); trackVp.removeAttribute('role'); trackVp.removeAttribute('aria-label'); }
 
   /* ------------------------------------------------------------------------
      3 · MOTION SETUP
@@ -375,25 +497,37 @@
   const heroFrame = $('[data-hero-frame]');
   const badge = $('[data-badge]');
 
+  // Full loader once per session; repeat visits go straight to the hero reveal
+  let seen = false;
+  try { seen = sessionStorage.getItem('otc-intro') === '1'; sessionStorage.setItem('otc-intro', '1'); } catch { /* storage blocked */ }
+  const unlock = () => { lenis && lenis.start(); };
   const intro = gsap.timeline({
-    delay: 0.15,
-    onComplete: () => { root.classList.add('is-loaded'); lenis && lenis.start(); },
+    delay: seen ? 0 : 0.15,
+    onComplete: () => root.classList.add('is-loaded'),
   });
+  if (seen) {
+    loader.style.display = 'none';
+    intro.addLabel('reveal', 0);
+  } else {
+    intro
+      .fromTo('.loader__clock', { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: EASE })
+      .fromTo('[data-loader-hand]', { rotation: 0, ...HAND }, { rotation: 360, ...HAND, duration: 0.95, ease: 'power3.inOut' }, '-=0.4')
+      .fromTo('.loader__word span', { yPercent: 110 }, { yPercent: 0, duration: 0.8, ease: EASE, stagger: 0.07 }, '-=0.55')
+      .fromTo('.loader__rule', { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: 'expo.inOut' }, '-=0.55')
+      .fromTo('.loader__tag', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, '-=0.45')
+      .to('.loader__inner', { opacity: 0, y: -20, duration: 0.4, ease: 'power2.in' }, '+=0.2')
+      .to(loader, { yPercent: -100, duration: 1, ease: 'expo.inOut', onComplete: () => { loader.style.display = 'none'; } }, '-=0.1')
+      .addLabel('reveal', '-=0.65');
+  }
   intro
-    .fromTo('.loader__clock', { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: EASE })
-    .fromTo('[data-loader-hand]', { rotation: 0, ...HAND }, { rotation: 360, ...HAND, duration: 1.1, ease: 'power3.inOut' }, '-=0.45')
-    .fromTo('.loader__word span', { yPercent: 110 }, { yPercent: 0, duration: 0.8, ease: EASE, stagger: 0.08 }, '-=0.6')
-    .fromTo('.loader__rule', { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: 'expo.inOut' }, '-=0.55')
-    .fromTo('.loader__tag', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, '-=0.45')
-    .to('.loader__inner', { opacity: 0, y: -20, duration: 0.5, ease: 'power2.in' }, '+=0.3')
-    .to(loader, { yPercent: -100, duration: 1.1, ease: 'expo.inOut' }, '-=0.1')
-    .fromTo(heroFrame, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.6, ease: 'expo.inOut', clearProps: 'clipPath' }, '-=0.7')
-    .fromTo('[data-hero-img]', { scale: 1.3 }, { scale: 1, duration: 2.2, ease: EASE }, '<')
-    .fromTo(hdr, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 1, ease: EASE, clearProps: 'transform' }, '<0.2')
-    .fromTo(heroWords, { yPercent: 118 }, { yPercent: 0, duration: 1.2, ease: EASE, stagger: 0.08 }, '<0.1')
-    .fromTo('[data-hero-rule]', { scaleX: 0 }, { scaleX: 1, duration: 1.2, ease: 'expo.inOut' }, '<0.3')
-    .fromTo(heroFades, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1, ease: EASE, stagger: 0.1 }, '<0.1')
-    .fromTo(badge, { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 1.4, ease: 'expo.out' }, '<0.3');
+    .call(unlock, null, 'reveal+=0.3') // scrolling is allowed as soon as the hero is showing, not when every tween ends
+    .fromTo(heroFrame, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.5, ease: 'expo.inOut', clearProps: 'clipPath' }, 'reveal')
+    .fromTo('[data-hero-img]', { scale: 1.3 }, { scale: 1, duration: 2.1, ease: EASE }, 'reveal')
+    .fromTo(hdr, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 1, ease: EASE, clearProps: 'transform' }, 'reveal+=0.2')
+    .fromTo(heroWords, { yPercent: 118 }, { yPercent: 0, duration: 1.2, ease: EASE, stagger: 0.08 }, 'reveal+=0.3')
+    .fromTo('[data-hero-rule]', { scaleX: 0 }, { scaleX: 1, duration: 1.2, ease: 'expo.inOut' }, 'reveal+=0.6')
+    .fromTo(heroFades, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1, ease: EASE, stagger: 0.1 }, 'reveal+=0.7')
+    .fromTo(badge, { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 1.4, ease: 'expo.out' }, 'reveal+=1');
 
   // Badge text turns slowly forever; scroll velocity nudges it
   const badgeSpin = gsap.to('.badge__text', { rotation: 360, duration: 26, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
@@ -441,7 +575,6 @@
   intTl
     .fromTo('[data-int-bg]', { scale: 1.15 }, { scale: 1, duration: 3 }, 0)
     .fromTo('[data-def]', { opacity: 0.15, x: 24 }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.8, ease: 'power2.out' }, 0.2)
-    .fromTo('.defs span', { color: 'rgba(112,205,222,.3)' }, { color: 'rgba(112,205,222,1)', duration: 0.5, stagger: 0.8 }, 0.2)
     .fromTo('[data-int-note]', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 2.3)
     .to({}, { duration: 0.3 }); // hold
 
@@ -506,6 +639,8 @@
   batchReveal($('.epgrid'), 2.5); // small drift: the promo card must stay uncropped
   $$('[data-tilt]').forEach((el) => tilt(el, { amp: 2 }));
   leave($('.sec-head', episodes));
+  fadeUp($('.checkin'));
+  $$('.checkin [data-speed]').forEach(speed);
 
   /* ------------------------------------------------------------------------
      07 · HOST — portrait wipes up + un-zooms, image drifts, clock turns with scroll

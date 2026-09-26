@@ -13,7 +13,7 @@ Source of truth for every animation. If the site is ported (Next.js, Astro, Webf
 | ScrollTrigger config | `ignoreMobileResize: true` |
 | Default ease | `expo.out` (CSS mirror: `--ease-out: cubic-bezier(.16,1,.3,1)`) |
 | Creation order | DOM order, then `ScrollTrigger.sort()`; `refresh()` after `document.fonts.ready` and `load` |
-| Static mode | `html.static` when `prefers-reduced-motion: reduce` **or** GSAP/ScrollTrigger missing. No loader, pins, Lenis or scroll tweens |
+| Static mode | `<html class="static">` in the markup (safe with no JS). The head script removes it unless reduced motion is on; `main.js` re-adds it if GSAP/ScrollTrigger are missing. No loader, pins, Lenis or scroll tweens |
 | Anchors | `lenis.scrollTo(target, { duration: 1.4, offset: section ? 0 : -96 })`. `[data-topic]` links also pre-select the enquiry topic |
 | Clock hands | `rotation` with `svgOrigin: '50 50'` (`HAND`) in both from and to vars |
 | Desktop-only motion | `gsap.matchMedia()` with `(min-width: 761px)` for `[data-speed]`; tilt only on `(hover:hover) and (pointer:fine)` |
@@ -41,31 +41,35 @@ Source of truth for every animation. If the site is ported (Next.js, Astro, Webf
 
 ### 00 Loader → 02 Hero intro (timeline)
 Lenis is stopped during the intro and the scroll is reset to the top when there is no hash.
+The full loader plays **once per session** (`sessionStorage['otc-intro']`). Repeat visits hide the loader and start at the `reveal` label (measured: scroll unlocked 73ms after DOMContentLoaded). First visit: scroll unlocks ≈2.8s after DOMContentLoaded.
 
-| t | Target | Tween |
+| Position | Target | Tween |
 |---|---|---|
-| 0.15 | `.loader__clock` | scale 0.6, opacity 0 → 1, 1 · 0.8 expo.out |
-| −0.45 | `[data-loader-hand]` | rotation 0 → 360 (svgOrigin 50 50) · 1.1 power3.inOut |
-| −0.6 | `.loader__word span` | yPercent 110 → 0 · 0.8, stagger 0.08 |
-| −0.55 | `.loader__rule` | scaleX 0 → 1 · 0.8 expo.inOut |
-| −0.45 | `.loader__tag` | opacity 0, y 10 → 1, 0 · 0.6 |
-| +0.3 hold | `.loader__inner` | opacity → 0, y −20 · 0.5 power2.in |
-| −0.1 | `.loader` curtain | yPercent 0 → −100 · 1.1 expo.inOut |
-| −0.7 | `[data-hero-frame]` | clipPath inset(100% 0 0 0) → inset(0) · 1.6 expo.inOut |
-| same | `[data-hero-img]` | scale 1.3 → 1 · 2.2 expo.out |
-| +0.2 | header | opacity 0, y −20 → 1, 0 · 1.0 |
-| +0.1 | hero words | yPercent 118 → 0 · 1.2, stagger 0.08 |
-| +0.3 | `[data-hero-rule]` | scaleX 0 → 1 · 1.2 expo.inOut |
-| +0.1 | `[data-hero-fade]` | opacity 0, y 24 → 1, 0 · 1.0, stagger 0.1 |
-| +0.3 | `[data-badge]` | scale 0, rotation −90 → 1, 0 · 1.4 expo.out |
-| end | none | `html.is-loaded`, `lenis.start()` |
+| 0.15 | `.loader__clock` | scale 0.6, opacity 0 → 1, 1 · 0.7 expo.out |
+| −0.4 | `[data-loader-hand]` | rotation 0 → 360 (svgOrigin 50 50) · 0.95 power3.inOut |
+| −0.55 | `.loader__word span` | yPercent 110 → 0 · 0.8, stagger 0.07 |
+| −0.55 | `.loader__rule` | scaleX 0 → 1 · 0.7 expo.inOut |
+| −0.45 | `.loader__tag` | opacity 0, y 10 → 1, 0 · 0.5 |
+| +0.2 hold | `.loader__inner` | opacity → 0, y −20 · 0.4 power2.in |
+| −0.1 | `.loader` curtain | yPercent 0 → −100 · 1.0 expo.inOut, then `display:none` |
+| label `reveal` = curtain end − 0.65 | | |
+| reveal +0.3 | none | `lenis.start()` (scroll unlocks here, not at the end) |
+| reveal | `[data-hero-frame]` | clipPath inset(100% 0 0 0) → inset(0) · 1.5 expo.inOut |
+| reveal | `[data-hero-img]` | scale 1.3 → 1 · 2.1 expo.out |
+| reveal +0.2 | header | opacity 0, y −20 → 1, 0 · 1.0 |
+| reveal +0.3 | hero words | yPercent 118 → 0 · 1.2, stagger 0.08 |
+| reveal +0.6 | `[data-hero-rule]` | scaleX 0 → 1 · 1.2 expo.inOut |
+| reveal +0.7 | `[data-hero-fade]` | opacity 0, y 24 → 1, 0 · 1.0, stagger 0.1 |
+| reveal +1.0 | `[data-badge]` | scale 0, rotation −90 → 1, 0 · 1.4 expo.out |
+| end | none | `html.is-loaded` |
 
 CSS failsafe: `.js .loader` hides itself at 5s.
 
 ### 01 Header (plain scroll listener, all modes)
 - Transparent over the hero; `.is-solid` (navy 92% + blur, 88 → 72px) after 40px of scroll.
 - `.is-hidden` (translateY −100%) when scrolling down past 35% of the viewport; returns on any scroll up.
-- Drawer slides in from the right (0.7s). Lenis stops while open. Logo, links, title and platform links `enter()` (y 28, stagger 0.045, delay 0.15, 0.9s).
+- Scroll handler is rAF-throttled. An IntersectionObserver (`rootMargin -45% 0 -50% 0`) sets `aria-current` on the matching nav link, which draws its sky underline.
+- Drawer slides in from the right (0.7s). Lenis stops while open (static mode: `overflow:hidden`). Tab is trapped inside; Escape closes and returns focus to the burger. Logo, links, title and platform links `enter()` (y 28, stagger 0.045, delay 0.15, 0.9s).
 
 ### Back to top (plain scroll listener, all modes)
 Fixed circular button with an SVG progress ring (`pathLength=1`, `dashoffset = 1 − progress`). Appears after 1 viewport. Hidden while the menu is open.
@@ -92,7 +96,6 @@ Pinned timeline: `start: top top`, `end: += 2 × innerHeight`, `pin`, `scrub: 1`
 |---|---|---|
 | 0 → 3 | `[data-int-bg]` | scale 1.15 → 1 |
 | 0.2 / 1.0 / 1.8 (+0.5) | `[data-def]` 1–3 | opacity 0.15, x 24 → 1, 0 (power2.out) |
-| same | `.defs span` numbers | sky 30% → sky 100% |
 | 2.3 → 2.7 | `[data-int-note]` | opacity 0, y 16 → 1, 0 |
 | 2.7 → 3.0 | none | hold |
 
@@ -115,6 +118,10 @@ Static: native `overflow-x: auto` swipe row with scroll-snap.
 
 ### 06 Episodes
 Heading `reveal`, then `leave()`. `.epgrid` → `batchReveal(list, 2.5)` (small drift so the promo card stays uncropped). Feature card `tilt` (amp 2°). Waveform bars loop in CSS.
+
+### 06b Clock-out check (inside Episodes)
+- `.checkin` `fadeUp`; `.checkin__intro` `[data-speed="0.94"]` (desktop).
+- Each question renders and `enter()`s its children; the first option gets focus. Answering disables both options, marks the picked one, then the "why" line + Next button `enter()` (stagger 0.1) and Next gets focus. The result screen `enter()`s. `ScrollTrigger.refresh()` after each render that changes height.
 
 ### 07 Host
 - `.host__frame` wipes up (clipPath inset(100% 0 0 0) → 0, 1.4s expo.inOut) at `top 80%`, once, while its `.ph` un-zooms 1.25 → 1 (2s).
