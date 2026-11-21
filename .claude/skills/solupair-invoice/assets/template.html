@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<title>Solupair Invoice {{reference}}</title>
+<style>
+  @page { size: A4; margin: 14mm 14mm 16mm; }
+  :root { --ink: #161616; --muted: #6b6b6b; --line: #e3e3e8; --accent: #5a3fe0; --tint: #f1eefc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 400 10.4pt/1.45 "Inter", Arial, sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bar { background: #000; border-radius: 6px 6px 0 0; height: 24mm; display: flex; align-items: center; justify-content: space-between; padding: 0 7mm; position: relative; }
+  .bar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1.2mm; height: 1.2mm; border-radius: 0 0 4px 4px; background: linear-gradient(90deg, #22d3ee, #6d5cf6 45%, #ec4899); }
+  .bar img { height: 14mm; }
+  .bar .doc { color: #fff; font: 700 16pt/1 "Inter"; letter-spacing: .22em; }
+  h1 { font-size: 22pt; letter-spacing: -.02em; margin: 9mm 0 1mm; }
+  .sub { color: var(--muted); margin: 0 0 7mm; }
+  .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; margin-bottom: 8mm; }
+  .meta b { display: block; font: 500 7.6pt/1.4 "Inter"; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 1mm; }
+  h2 { color: var(--accent); font-size: 13pt; margin: 8mm 0 0; padding-bottom: 2mm; border-bottom: 1px solid var(--accent); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 2.6mm 2.5mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { text-align: left; font: 600 7.6pt/1 "Inter"; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .num { text-align: right; white-space: nowrap; }
+  td small { display: block; color: var(--muted); font-size: 8.6pt; margin-top: .8mm; }
+  .tot td { border-bottom: 0; padding-top: 1.6mm; padding-bottom: 1.6mm; }
+  .tot .lbl { text-align: right; color: var(--muted); white-space: nowrap; }
+  .due td { background: var(--tint); font-weight: 700; font-size: 12pt; border-top: 1px solid var(--accent); }
+  .due .lbl { color: var(--accent); }
+  .bank { display: grid; grid-template-columns: 42mm 1fr; gap: 1.6mm 4mm; margin-top: 3mm; }
+  .bank div:nth-child(odd) { color: var(--muted); }
+  .bank div:nth-child(even) { font-weight: 600; }
+  .note { background: var(--tint); border-radius: 6px; padding: 4.5mm 5mm; margin-top: 6mm; }
+  .foot { margin-top: 8mm; font-size: 8.6pt; color: var(--muted); }
+  .foot b { color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="bar"><img src="solupair.png" alt="Solupair"><span class="doc">INVOICE</span></div>
+
+  <h1>Invoice {{reference}}</h1>
+  <p class="sub">{{project}}</p>
+
+  <div class="meta">
+    <div><b>Billed to</b>{{billed_to}}</div>
+    <div><b>From</b>Solupair (Pty) Ltd<br>Reg. 2026/427340/07<br>18 Maple Drive, 15 Candice Glades Estate<br>info@Solupair.co.za</div>
+    <div><b>Invoice date / due</b>{{date}}<br>{{due}}</div>
+  </div>
+
+  <h2>Invoice details</h2>
+  <table>
+    <tr><th>Description</th><th class="num">Qty</th><th class="num">Amount (ZAR)</th></tr>
+{{rows}}
+    <tr class="tot"><td></td><td class="lbl">Subtotal</td><td class="num">{{subtotal}}</td></tr>
+{{vat_row}}
+    <tr class="due"><td></td><td class="lbl">Amount due</td><td class="num">{{total}}</td></tr>
+  </table>
+
+  <h2>Banking details</h2>
+  <div class="bank">
+    <div>Account name</div><div>{{bank.account_name}}</div>
+    <div>Bank</div><div>{{bank.bank}}</div>
+    <div>Account type</div><div>{{bank.account_type}}</div>
+    <div>Account number</div><div>{{bank.account_number}}</div>
+    <div>Branch code</div><div>{{bank.branch_code}}</div>
+    <div>SWIFT</div><div>{{bank.swift}}</div>
+    <div>Payment reference</div><div>{{reference}}</div>
+  </div>
+
+  <div class="note">{{note}}</div>
+
+  <p class="foot"><b>Solupair</b> · Solupair (Pty) Ltd · Reg. 2026/427340/07 · info@Solupair.co.za</p>
+</body>
+</html>
