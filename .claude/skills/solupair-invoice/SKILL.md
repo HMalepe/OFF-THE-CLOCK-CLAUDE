@@ -1,6 +1,6 @@
 ---
 name: solupair-invoice
-description: Make a Solupair (Pty) Ltd invoice as a branded A4 PDF (black bar with the Solupair logo, gradient underline, purple accent, banking block). Use whenever Holiday asks for an invoice, a bill, a deposit/split/retainer invoice, or "invoice <client> for R…", even if he only gives a client name, an amount and a reference.
+description: Make a Solupair (Pty) Ltd invoice as a branded A4 PDF (black bar with the Solupair logo, gradient underline, purple accent, banking block). Use whenever Holiday asks for an invoice, a bill, a deposit/split/retainer invoice, or "invoice a client for R…", even if he only gives a client name, an amount and a reference.
 ---
 
 # Solupair invoice
